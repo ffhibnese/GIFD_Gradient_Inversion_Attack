@@ -1,0 +1,133 @@
+  Introduction : 'ILO on data with image norm'
+  optim : "ours"    #optim method
+  cost_fn : "sim_cmpr0"   #the type of loss function 
+  # cost_fn : "l2"   #the type of loss function 
+
+  indices : "def"      #decide which part of gradients to be involved in the final gradients match loss.
+  weights : 'equal'    #weight of every graident scalar's matching loss
+  init : 'randn'     #how we initial the original latent code.
+  model : "ResNet18"   #FL model
+  restarts : 4
+
+  num_images : 1   #How many images we want to reconstruct at a batch
+  num_exp : 15
+  target_id : 0
+  lr : 0.03
+  total_variation : 0.0001     #the coefficient of total variation
+  bn_stat : 0       #choose if we use bn statistic to regularizer
+  image_norm : 0.000001    #the coefficient of norm regularizer
+  group_lazy : 0    #choose if we use group lazy regularization
+  
+  #For GIAS
+  max_iterations : 1000 #1000    #Maximum number of iterations for reconstruction.
+  gias_iterations : 8000 #5000  #Maximum number of gias iterations for reconstruction.
+  gias_lr : 0.001
+  
+  # For input data
+
+  # generative_model : 'stylegan2_io'
+  # gen_dataset : 'FFHQ64'
+  # # gen_dataset : 'I512'
+  dataset : "OOD_FFHQ"
+  data_path : "./dataset/ood_ffhq/ood_ffhq_car"
+
+  generative_model : 'stylegan2_io'
+  gen_dataset : 'FFHQ64'
+  # gen_dataset : 'I512'
+  # dataset : "FFHQ64"
+  # data_path : "./dataset/FFHQ-128"
+
+
+  #For output data
+  # exp_name : 'ex2_ILOPlus_70imgs'   #Same latent space search
+  exp_name : 'woman_hat2'   #Same latent space search
+
+  # output_dir : 'outputs/ILO/ffhq'
+  output_dir : 'outputs/revenge/'
+
+  # output_dir : 'ood_outputs/GIAS/ffhq'
+
+  #params for inter_optim
+  inter_optim : true
+  gias : false
+  ggl : false
+  # steps : [500, 1500, 1500, 2500]
+  mae : false
+  #For stylegan2
+  # steps : [500, 1000, 1500, 2000, 300, 300, 200, 100]
+  # steps : [200, 500, 750, 1250, 1000, 600, 500, 200]  #5000 in total
+  # steps : [500, 750, 750, 1250, 1250, 750, 500, 250]   #6000 in total
+  # steps : [200, 500, 750, 1250, 1000, 600, 500, 250]   #5600 in total
+  # steps : [500, 1250, 1000, 1250, 1000, 500, 300, 200]  #6000 in total
+  # steps : [500, 1000, 1500, 1500, 1500, 1000]      #6000 in total
+  # steps : [500, 1000, 1000, 1500, 1250, 500, 250]      #6000 in total
+  # steps : [500, 1500, 1500, 1500, 1500, 1000]      #7000 in total
+  # steps : [1000, 2000, 2000, 2000]      #7000 in total
+  # steps : [500, 1000, 1500, 1500, 1500]      #6000 in total
+  steps : [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]      #8000 in total
+  # steps : [1, 1, 1, 1, 1, 1, 1, 1]      #8000 in total
+
+  # steps : [1000, 1000, 1000, 1000, 1000]      #5000 in total
+
+  progressive_re : false
+  # steps : [ 1, 1, 1, 1, 1, 1, 1, 1]
+
+  # steps : [1, 1, 1, 1, 1]
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  start_layer: 0
+  end_layer: 8
+
+  # For projection
+  project : true
+  do_project_gen_out: true
+  do_project_noises: true
+  do_project_latent: true
+  # max_radius_gen_out: [-1, -1, -1, -1, -1, 2000, 2000, 2000]
+  # max_radius_gen_out: [1000, 1000, 6000, 8000, 8000, 8000, 8000, 8000]
+  # max_radius_noises: [1000, 1000, 6000, 8000, 8000, 8000, 8000, 8000]
+  # max_radius_latent: [100, 1000, 6000, 8000, 8000, 8000, 8000, 8000]
+  # max_radius_gen_out: [1000, 1000, 6000, 6000, 8000, 8000, 8000, 8000]
+  # max_radius_noises: [1000, 1000, 6000, 6000, 8000, 8000, 8000, 8000]
+  # max_radius_latent: [100, 1000, 6000, 6000, 8000, 8000, 8000, 8000]
+  # max_radius_gen_out: [1000, 2500, 3500, 4500, 5500, 6500, 8000, 8000]
+  # max_radius_noises: [1000, 2500, 3500, 4500, 5500, 6500, 8000, 8000]
+  # max_radius_latent: [1000, 2500, 3500, 4500, 5500, 6500, 8000, 8000]
+  max_radius_gen_out: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
+  max_radius_noises: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
+  max_radius_latent: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
+  #input & output 
+  # input_data: True
+  # input_files:
+  #   - 'io_files/original/john_cleese_no_nose.png'
+  # output_files:
+  #   - 'io_files/results/john_cleese.png'
+
+  # The pre-trained StyleGAN checkpoint
+  ckpt: './inversefed/genmodels/stylegan2_io/stylegan2-ffhq-config-f.pt'
+  # ckpt: '/home/itml_fh/gradient-inversion-generative-image-prior/inversefed/genmodels/stylegan2_io/imagenet.pt'
+
+
+  #LR pace for training
+  lr_same_pace: false 
+
+  #Defense parameter
+  defense_method : None
+  defense_setting : 
+      - noise : None
+      - clipping : None
+      - compression : None
+      - representation : None
+
+  #Test option
+  test_pgd : false
+  test_cost_fn : false
+
+  #For CMA-ES
+  KLD : 0
+  cma_budget : 800
+  # cma_budget : 1
+  num_sample : 50  #sample times
+
+  #cmd instruction
+  # python rec_mult.py --generate --ood
+  

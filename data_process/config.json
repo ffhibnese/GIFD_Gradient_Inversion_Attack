@@ -1,0 +1,7 @@
+{
+    "input_dir" : "experiments",
+    "exp_name" : "ex6",
+    "output_dir" : "Charts",
+    "n_trials" : 1
+}
+ 

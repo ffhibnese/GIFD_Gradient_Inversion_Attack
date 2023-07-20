@@ -1,0 +1,116 @@
+  # files : ["./img/horse1.jpg"]
+  # labels : [402]
+  Introduction : 'GILO method on resolution 64 at batch size 1.'
+  
+  optim : "ours"    #optim method
+  # cost_fn : "sim_cmpr0"   #the type of loss function 
+  cost_fn : "sim_cmpr0"   #the type of loss function 
+
+  indices : "def"      #decide which part of gradients to be involved in the final gradients match loss.
+  weights : 'equal'    #weight of every graident scalar's matching loss
+  init : 'randn'     #how we initial the original latent code.
+  model : "ResNet18"   #FL model
+  restarts : 4
+
+  num_images : 1   #How many images we want to reconstruct at a batch
+  num_exp : 30
+  target_id : 0
+  lr : 0.03
+  # total_variation : 0.003     #the coefficient of total variation
+  total_variation : 0.0001     #the coefficient of total variation
+  bn_stat : 0       #choose if we use bn statistic to regularizer
+  image_norm : 0.000001    #the coefficient of norm regularizer
+  group_lazy : 0    #choose if we use group lazy regularization
+  
+  #For GIAS
+  max_iterations : 1000    #Maximum number of iterations for reconstruction.
+  gias_iterations : 8000  #Maximum number of gias iterations for reconstruction.
+  gias_lr : 0.00001   #For biggan, we'd better choose smaller learning rate 
+  
+  # For input data
+  generative_model : 'BigGAN'
+  # generative_model : 'stylegan2_io'
+  gen_dataset : 'ImageNet64'
+  dataset : "IMAGENET_IO"
+  data_path : "./dataset/media/imagenet/val"
+
+
+  #For output data
+  exp_name : 'ex1_30imgs_soteria_imagenet_gias'   #Same latent space search
+  # output_dir : 'ood_outputs/GILO/imagenet'  
+  output_dir : 'defense_outputs/Soteria/imagenet/GIAS'
+  #params for inter_optim
+  inter_optim : false
+  gias : true
+  ggl : false
+  # steps : [500, 1500, 1500, 2500]
+
+  #For biggan
+  # steps: [150, 150, 150, 150, 100, 100, 100, 100, 100, 150, 150, 200, 200]
+  # steps: [200, 1000, 500, 300, 300, 200, 200, 200, 100, 100, 100, 50, 50]  #Total 3300
+  # steps: [1000, 1000, 1000, 1000, 1000, 1000, 500, 500, 500, 500]  #Total 7500
+  # steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  #Total 8000
+  # steps: [4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000, 4000]  #Total 13000
+  steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  #Total 13000
+  # steps: [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]  #Total 8000
+
+  # steps : [5000, 1000, 1000]
+
+  mae : false
+  # steps: [15, 25, 30, 40, 50, 50, 100, 50, 50, 25, 25, 25, 10]
+  # steps : [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+
+  # steps : [1, 1, 1, 1]
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  start_layer: 0
+  end_layer: 13
+
+  # For projection
+  project : true
+  do_project_gen_out: true
+  do_project_noises: false
+  do_project_latent: false
+  # max_radius_gen_out: [-1, -1, -1, -1, -1, -1, -1, -1, 500, 500, 1000, 1000, 2000]
+  max_radius_gen_out: [1000, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500]
+  # max_radius_gen_out: [1000, 2000, 2000, 3000, 3000, 4000, 4000, 5000, 5000, 6000, 6000, 8000, 8000]
+  # max_radius_gen_out: [1000, 2000, 3000, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500, 8000, 8000]
+  # max_radius_gen_out: [1000, 2000, 6000, 6000, 8000, 8000, 8000, 8000, 10000, 10000, 10000, 10000, 10000]
+  # max_radius_gen_out: [-1, 500, 500, 1000, 1000, 2000, 2000, 1000, 1000, 2000, 2000, 5000, 5000]
+  max_radius_noises: [100, 200, 200, 500, 500, 500, 1000, 1000, 1000, 2000, 2000, 5000, 5000]
+  max_radius_latent: [100, 200, 200, 500, 500, 500, 1000, 1000, 1000, 2000, 2000, 5000, 5000]
+  
+  # The pre-trained StyleGAN checkpoint
+  ckpt: None
+
+  #LR pace for training
+  lr_same_pace: false 
+
+  #Defense parameter
+  defense_method : representation
+  defense_setting : 
+    noise : None
+    clipping : 4
+    compression : 90
+    representation : 80
+
+  #Test option
+  test_pgd : false
+  test_cost_fn : false
+
+  #For CMA-ES
+  KLD : 0.1  # Recommendation: 0.1 for biggan, 0.02 for stylegan2
+  # cma_budget : 800
+  cma_budget : 800
+
+  num_sample : 50 #sample times
+  progressive_re : false
+  #For Biggan_ilo
+  #imgs_idx: 4000, 5000, 9000, 9015 373（鸡） 5029（天鹅） 7824（狗） 13281（白狗） 16556（兔子） 18436（monkey） 
+  # steps: [50, 150, 150, 150, 100, 100, 100, 100, 100, 150, 150, 200, 200]
+  # lr: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  # do_project_latent_out : true
+  # max_radius_latent_out : [100, 200, 200, 500, 500, 500, 1000, 1000, 1000, 2000, 2000, 5000, 5000]
+
+  #cmd instruction
+  # python rec_mult.py --unsigned --save_image --generate --gan biggan
+  
