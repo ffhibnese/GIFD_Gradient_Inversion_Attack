@@ -9,7 +9,7 @@ A PyTorch official implementation for [GIFD: A Generative Gradient Inversion Met
 ![results](./figures/results.jpg)
 
 ## Setup
-We provide environment configuration file exported by anaconda, which can help you build up conveniently:
+We provide environment configuration file exported by Anaconda, which can help you build up conveniently:
 ```bash
 conda env create -f environment.yml
 conda activate GIFD 
@@ -17,15 +17,15 @@ conda activate GIFD
 ## Dataset and model file
 Download the [ImageNet](https://www.image-net.org/) and [FFHQ](https://github.com/NVlabs/ffhq-dataset) and provide their paths in the yml file.
 
-While the model weights of BigGAN is downloaded automatically, StyleGAN2 need to be downloaded manually.
+While the model weights of BigGAN are downloaded automatically, StyleGAN2 weights require downloaded manually.
 
 `gdown --id 1c1qtz3MVTAvJpYvsMIR5MoSvdiwN2DGb` (shape predictor, placed in the root directory)
 
 `gdown --id 1JCBiKY_yUixTa6F1eflABL88T4cii2GR` (stylegan pre-trained checkpoint, placed in the inversefed\genmodels\stylegan2_io)
 
 ## Quick start
-We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based and the GAN-free methods. 
-You can simply start by specifying the path of config file.
+We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods. And we give detailed descriptions of every parameter.
+You can start by specifying the path of the config file.
 
 `python rec_mult.py --config xxxx`
 
@@ -38,4 +38,4 @@ For BigGAN, we use PyTorch official [implementation and weights](https://github.
 
 For StyleGAN2, we adapt [Pytorch implementation](https://github.com/rosinality/stylegan2-pytorch), which is based on the [official Tensorflow code](https://github.com/NVlabs/stylegan2).
 
-We express great gratitute for their contribution to our community.
+We express great gratitude for their contribution to our community.
