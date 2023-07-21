@@ -1,11 +1,8 @@
-  # files : ["./img/horse1.jpg"]
-  # labels : [402]
-  Introduction : 'GAN-free optimizer on imagenet with resolution 64x64'
+  Introduction : 'GAN-free methods for gradient inversion attack.'
   
   optim : "GAN_free"    #optim method
   cost_fn : "sim_cmpr0"   #the type of loss function 
-  # cost_fn : "l2"   #the type of loss function 
-
+  set_seed : None
   indices : "def"      #decide which part of gradients to be involved in the final gradients match loss.
   weights : 'equal'    #weight of every graident scalar's matching loss
   init : 'randn'     #how we initial the original latent code.
@@ -25,31 +22,21 @@
   max_iterations : 15000    #Maximum number of iterations for reconstruction.
 
   gias_lr : 0.00001   #For biggan, we'd better choose smaller learning rate 
-  prompt: False
-  prompt_iteration : 1000
+
   # For input data
   generative_model : ''
-  # gen_dataset : 'FFHQ64'
-  # dataset : "FFHQ64"
-  # data_path : "./dataset/FFHQ-128"
-  gen_dataset : 'ImageNet64'
+  gen_dataset : 'ImageNet64'    # ['ImageNet64', 'FFHQ64']
   dataset : "IMAGENET_IO"
   data_path : "./dataset/media/imagenet/val"
-  # data_path : "./OOD_data/"
-
 
   #For output data
-  exp_name : 'ex3_50imgs_64'   #Same latent space search
-  # output_dir : 'solve_ilo_not_ood'
-  # output_dir : 'outputs/gan_free/imagenet'
-  # output_dir : "outputs/gan_free/imagenet"
-  output_dir : "batch_outputs/1/imagenet/gan_free"
+  exp_name : 'ex1_gan_free_imagenet'   #Same latent space search
+  output_dir : "results"
 
-  #params for inter_optim
+  #Choice for GAN-free methods
   geiping : true
   yin : true
 
-  mae : false
   #Defense parameter
   defense_method : None
   defense_setting : 
@@ -66,5 +53,4 @@
   lr_same_pace: false 
 
   #cmd instruction
-  # python rec_mult.py --unsigned --save_image
-  
+  # python rec_mult.py --config configs_gan_free.yml

@@ -91,15 +91,6 @@ def project_onto_l1_ball(x, eps):
     x = mask * x + (1 - mask) * proj * torch.sign(x)
     return x.view(original_shape)
 
-def prepare_model(chkpt_dir, arch='mae_vit_large_patch16'):
-    # build model
-    model = getattr(models_mae, arch)()
-    # load model
-    checkpoint = torch.load(chkpt_dir, map_location='cpu')
-    msg = model.load_state_dict(checkpoint['model'], strict=False)
-    print(msg)
-    return model
-
 def show_image(image, title=''):
     # image is [H, W, 3]
     assert image.shape[2] == 3
@@ -110,14 +101,3 @@ def show_image(image, title=''):
     plt.axis('off')
     return
 
-def prepare_inn(latent_dim, fpath):
-
-    base_to_latent = inn.create_inn(
-        latent_dim,
-        8,
-        "all_in_one",
-        )
-    if fpath:
-        base_to_latent.load_state_dict(torch.load(fpath))        # inn.load_state_dict(torch.load('scg.pth')))
-        
-    return base_to_latent

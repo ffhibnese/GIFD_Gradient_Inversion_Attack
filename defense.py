@@ -7,10 +7,11 @@ Including:
 - Gradient compression
 - Representation perturbation
 """
+
+# The code of defense is adapted from https://github.com/zhuohangli/GGL. 
+
 import numpy as np
 import torch
-
-
 
 def additive_noise(input_gradient, std=0.1):
     """

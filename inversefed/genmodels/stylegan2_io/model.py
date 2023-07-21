@@ -498,7 +498,7 @@ class Generator(nn.Module):
                     getattr(self.noises, f'noise_{i}') for i in range(self.num_layers)
                 ]
 
-        if truncation < 1:  #做一个截断
+        if truncation < 1: 
             style_t = []
 
             for style in styles:
@@ -534,7 +534,7 @@ class Generator(nn.Module):
             return out,skip
         i = 1
         current_layer = 1
-        for conv1, conv2, noise1, noise2, to_rgb in zip(   #一共8层
+        for conv1, conv2, noise1, noise2, to_rgb in zip(   
             self.convs[::2], self.convs[1::2], noise[1::2], noise[2::2], self.to_rgbs
         ):
             if current_layer < self.start_layer:

@@ -15,7 +15,7 @@ import inversefed.porting as porting
 
 import math
 import time
-from inversefed.utils import project_onto_l1_ball, prepare_model, prepare_inn
+from inversefed.utils import project_onto_l1_ball
 import defense
 from inversefed.consts import STYLE_LEN
 import nevergrad as ng
@@ -55,7 +55,7 @@ DEFAULT_CONFIG = dict(signed=False,
                       giml=False, 
                       gias_lr=0.1,
                       gias_iterations=0,
-                      inter_optim=False,
+                      gifd=False,
                       steps=[],
                       lr_io=[],
                       start_layer=0,
@@ -69,22 +69,13 @@ DEFAULT_CONFIG = dict(signed=False,
                       max_radius_latent=[],
                       # The pre-trained StyleGAN checkpoint
                       ckpt=[],
-                      test_pgd=False,
-                      test_cost_fn=False,
-                      mae=False,
                       #For algorithm choose:
-                      prompt_gen=False,
-                      inn_path='',
                       gias=False,
                       ggl=False,
                       yin=False,
                       geiping=False,
                       cma_budget=0,
                       KLD=0,
-                      prompt = False,
-                      prompt_iteration = 0,
-                      progressive_re=False,
-                      prompt_lr = 1e-3,
                       #LR pace for training
                       lr_same_pace=False,
                       project=False,
@@ -110,7 +101,6 @@ class SphericalOptimizer():
     def __init__(self, params):
         self.params = params
         with torch.no_grad():
-            #keepdim代表不脱括号，原来是几维现在也是几维
             self.radii = {param: (param.pow(2).sum(tuple(range(2,param.ndim)), keepdim=True)+1e-9).sqrt() for param in params}      #sum输入的维度可以是tuple，代表依次对当前tensor的这些维度进行求和。
     @torch.no_grad()
     def step(self, closure=None):
@@ -167,7 +157,6 @@ class GradientReconstructor():
         self.num_gpus = torch.cuda.device_count() if torch.cuda.is_available() else 0
         self.setup = dict(device=self.device, dtype=next(model.parameters()).dtype)
         self.num_samples = config['num_sample']  # For CMA-ES
-        # self.image_project = False
         self.mean_std = mean_std
         self.num_images = num_images    
 
@@ -190,27 +179,8 @@ class GradientReconstructor():
         self.ys = [None for i in range(self.config['restarts'])]    #For biggan's cond_vector
         self.iDLG = True
         self.images = None
-        self.mae = None
-        self.inn = None
                 
         # initialization
-
-        if config['mae']:
-            # chkpt_dir = '/home/itml_fh/gradient-inversion-generative-image-prior/mae/demo/mae_visualize_vit_large.pth'
-            chkpt_dir = '/home/itml_fh/gradient-inversion-generative-image-prior/mae/demo/mae_visualize_vit_large_ganloss.pth'
-            self.mae = prepare_model(chkpt_dir, 'mae_vit_large_patch16')
-            self.mae.to(self.device)
-            print("The mae moad is loaded.")
-
-        if config['prompt']:
-            if self.config['generative_model'].startswith('stylegan2'):
-                # latent_dim = [18, 512]
-                latent_dim = 512
-            elif self.config['generative_model'].startswith('BigGAN'):
-                latent_dim = 128
-            self.inn = prepare_inn(latent_dim, config['inn_path'])
-            self.inn.to(self.device)
-
         if G:
             print("Loading G...")
             if self.config['generative_model'] == 'stylegan2':
@@ -244,10 +214,6 @@ class GradientReconstructor():
                 self.G.start_layer = self.config['start_layer']
                 self.G.end_layer = self.config['end_layer']
             elif self.config['generative_model'].startswith('stylegan2-ada'):
-                self.G, self.G_mapping, self.G_synthesis = G, G.mapping, G.synthesis
-                
-                #!!!!!!!!!!!!!!!!!!!
-                #pay attention
                 if self.num_gpus > 1:
                     self.G, self.G_mapping, self.G_synthesis = G, nn.DataParallel(self.G_mapping), nn.DataParallel(self.G_synthesis)
                 self.G_mapping.to(self.device)
@@ -264,8 +230,6 @@ class GradientReconstructor():
             self.G.eval() # Disable stochastic dropout and using batch stat.
         elif self.config['generative_model']:
             if self.config['generative_model'] == 'stylegan2':
-        #!!!!!!!!!!!!!!!!!
-        #pay attention
                 self.G, self.G_mapping, self.G_synthesis = porting.load_decoder_stylegan2(self.config, self.device, dataset=self.config['gen_dataset'])
                 self.G_mapping.to(self.device)
                 self.G_synthesis.to(self.device)
@@ -305,13 +269,13 @@ class GradientReconstructor():
         # # G = nn.DataParallel(G)
         #     self.G = nn.DataParallel(self.G)
 
-        if self.config['inter_optim']:
+        if self.config['gifd']:
             self.G_io = deepcopy(self.G)
             # if torch.cuda.device_count() > 1:
             #     self.G_io = nn.DataParallel(self.G_io)
             self.project = self.config["project"]
             self.steps = self.config["steps"]
-            self.ilo_cost = self.config['cost_fn']
+            self.gifd_loss = self.config['cost_fn']
             
         if self.config['gias']:
             self.G_list2d = [None for _ in range(self.config['restarts'])]
@@ -367,8 +331,6 @@ class GradientReconstructor():
             # dummy_z = [torch.Tensor(z).to(self.device) for z in dummy_z]
             dummy_z = torch.Tensor(dummy_z).to(self.device)
         running_device = dummy_z.device
-        # print("z's device:{} running device:{} model device:{}".format(dummy_z.device, running_device, next(G.parameters()).device))
-        # print("dummy_z's device:{}".format(dummy_z.device))
         if generative_model_name.startswith('stylegan2-ada'):
             # @click.option('--noise-mode', help='Noise mode', type=click.Choice(['const', 'random', 'none']), default='const', show_default=True)
             dummy_data = G(dummy_z, noise_mode='random')
@@ -387,7 +349,6 @@ class GradientReconstructor():
                 kernel_size = 512 // self.image_size
             else:
                 kernel_size = 1024 // self.image_size
-            #用池化处理尺寸
             dummy_data = torch.nn.functional.avg_pool2d(dummy_data, kernel_size)
         elif generative_model_name in ['BigGAN']:
             if self.config['optim'] == 'CMA-ES':
@@ -395,22 +356,10 @@ class GradientReconstructor():
                     dummy_z = dummy_z.tanh()
                     dummy_data, _ = G(dummy_z, ys.float(), 1) if G.start_layer == 0 else G(gen_outs[-1], ys.float(), 1)
             else:
-                # print("we made here and the dummy_z:{} start_layer:{} ys:{} end_layer:{}".format(dummy_z, G.start_layer, ys[0][138], G.end_layer))
-                # print("Now the start_layer:{}".format(start_layer))
-                # print(f"dummy_z's device:{dummy_z.device} ys's device:{ys.device} G's device:{next(G.parameters()).device}")
                 dummy_data, _ = G(dummy_z, ys.float(), 1) if start_layer == 0 else G(gen_outs[-1], ys.float(), 1)
-                if self.mae is not None:
-                    dummy_data = torch.nn.functional.interpolate(dummy_data, size=(224, 224), mode='area')
-                    _, y, _ = self.mae(dummy_data.float(), mask_ratio=0.75)
-                    dummy_data = self.mae.unpatchify(y)
             #TODO: If interpolate works, replace the avg_pool2d before.
-            if img_size > 0:   #Gradually increasing resolution
-                dummy_data = torch.nn.functional.interpolate(dummy_data, size=(img_size, img_size), mode='area')
-            else:
-                dummy_data = torch.nn.functional.interpolate(dummy_data, size=(self.image_size, self.image_size), mode='area')
+            dummy_data = torch.nn.functional.interpolate(dummy_data, size=(self.image_size, self.image_size), mode='area')
             # dummy_data = torch.nn.functional.interpolate(dummy_data, size=(img_size, img_size), mode='area')
-
-            # print('tell me the shit:{}'.format(dummy_data))
 
         elif generative_model_name in ['stylegan2-ada-z']:
             dummy_data = G(dummy_z, None, truncation_psi=0.5, truncation_cutoff=8)
@@ -418,7 +367,6 @@ class GradientReconstructor():
             dummy_data = G(dummy_z)
         
         # # TODO:
-        # if self.image_project:
         dm, ds = self.mean_std
         dm, ds = dm.to(running_device), ds.to(running_device)
         # print("dummy_data dimension:{}".format(dummy_data.shape))
@@ -505,12 +453,9 @@ class GradientReconstructor():
                 self.config['KLD'] = -1
                 self.config['image_norm'] = -1
                 self.config['group_lazy'] = -1
-                # self.image_project = True if self.generative_model_name == 'stylegan2_io' else False
                 #latent space search
                 dummy_z_gias = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
                 _x = self.reconstruct_by_latentCode(dummy_z_gias, infer_labels, img_shape, dryrun, self.max_iterations)
-
-
                 optimal_z, _, _, optimal_val = self.choose_optimal(_x, infer_labels, dummy_z=dummy_z_gias, dryrun=dryrun)
                 # print("optimal z's shape:{} _x shape:{}".format(optimal_z.shape, _x[0].shape))
                 #parameter space search
@@ -519,43 +464,15 @@ class GradientReconstructor():
                 else:
                     ans.append(['gias'] + list(self.gias_param_search(optimal_z, _x, infer_labels, optimal_ys=optimal_val)))
                 
-            #ILO
-            if self.config['inter_optim']:
-                self.config['cost_fn'] = self.ilo_cost  
+            #GIFD
+            if self.config['gifd']:
+                self.config['cost_fn'] = self.gifd_loss 
                 self.config['optim'] = 'adam'
                 self.config['KLD'] = -1
-                # self.image_project = True if self.generative_model_name == 'stylegan2_io' else False
-                # If present model is BigGAN, the latent space search rsult of ilo and gias should be the same. 
-                #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
                 dummy_z_io = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
-                if self.config['progressive_re']:
-                    img_resolu = [32, 64, 128, 224]
-                    for resolution in img_resolu:
-                        print("Reconstructing {} image.".format(resolution))
-                        self.init_var(infer_labels)
-                        if resolution <= self.image_size:
-                            ans += self.inter_optimizer(dummy_z_io, infer_labels, resolution, img_shape, prefix=str(resolution))                 
-                else:
-                    ans += self.inter_optimizer(dummy_z_io, infer_labels, -1)
-                # self.config['KLD'] = old_KLD  
+                ans += self.inter_optimizer(dummy_z_io, infer_labels, -1)
 
-            if self.config['prompt_gen']:
-                self.config['cost_fn'] = 'sim_cmpr0'
-                self.config['optim'] = 'adam'
-                self.config['KLD'] = -1
-                #latent space search
-                dummy_z_prompt = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
-                _x = self.reconstruct_by_latentCode(dummy_z_prompt, infer_labels, img_shape, dryrun, self.max_iterations)
-
-                optimal_z, _, _, optimal_val = self.choose_optimal(_x, infer_labels, dummy_z=dummy_z_prompt, dryrun=dryrun)
-                # print("optimal z's shape:{} _x shape:{}".format(optimal_z.shape, _x[0].shape))
-                #parameter space search
-                if self.generative_model_name in ['stylegan2_io']:
-                    ans.append(['prompt_gen'] + list(self.inn_param_search(optimal_z, _x, infer_labels, optimal_noise=optimal_val)))
-                else:
-                    ans.append(['prompt_gen'] + list(self.inn_param_search(optimal_z, _x, infer_labels, optimal_ys=optimal_val)))
-                
-        
+ 
         else:  #GAN-free method
             self.images = self._init_images(img_shape)
             if self.config['yin']:
@@ -572,7 +489,6 @@ class GradientReconstructor():
                 self.config['cost_fn'] = 'sim_cmpr0'
                 self.config['image_norm'] = -1
                 self.config['group_lazy'] = -1
-                # self.max_iterations = 24000
                 _x = self.reconstruct_by_latentCode(None, infer_labels, img_shape, dryrun, self.max_iterations)
                 _, best_score, x_best, _ = self.choose_optimal(_x, infer_labels, dryrun=dryrun)
                 stats_gp = {}
@@ -589,7 +505,7 @@ class GradientReconstructor():
                 print("Length of noises:%d" %(len(noises_single)))  
                 noises = []
                 for noise in noises_single:    
-                    noises.append(noise.normal_().to(self.device))   #.normal_()正态填充
+                    noises.append(noise.normal_().to(self.device))   
                 self.initial_noises = [list(noises) for i in range(self.config['restarts'])]   #For stylegan2_io 
             
             self.noises = deepcopy(self.initial_noises)
@@ -606,7 +522,7 @@ class GradientReconstructor():
         _x = [None for _ in range(self.config['restarts'])]        
         for trial in range(self.config['restarts']):
         # noise_list contains the indices of nodes that we will be optimizing over
-            for i in range(len(self.noises[trial])):       #这里只是在确认优化那些noises，不知道剩下的是不是也全都会参加运算。
+            for i in range(len(self.noises[trial])):   
                 if i in noise_list:
                     self.noises[trial][i].requires_grad = True
                 else:
@@ -644,8 +560,6 @@ class GradientReconstructor():
                     t = i / steps
                 lr = self.get_lr(t, learning_rate)
                 optimizer.param_groups[0]["lr"] = lr
-                # print("Type of dummy_z:{}".format(type(dummy_z[trial])))
-                # print("Noise's device:{}".format(self.noises[trial][0].device))
                 _x[trial] = self.gen_dummy_data(self.G_io, self.config['generative_model'], dummy_z[trial], gen_outs=self.gen_outs[trial], noise=self.noises[trial]) 
 
 
@@ -687,7 +601,6 @@ class GradientReconstructor():
                 )
 
             # TODO: check what happens when we are in the last layer
-            #+++++++++++++++++++++++++++++++++!!!!!!!!!!!!!!!!!!!!!!!!!!!need to correct
             with torch.no_grad():
                 # latent_w = self.mpl(dummy_z[trial])
                 self.G_io.end_layer = self.G_io.start_layer
@@ -696,15 +609,9 @@ class GradientReconstructor():
                                                     noise=self.noises[trial],
                                                     layer_in=self.gen_outs[trial][-1],
                                                     skip=None)
-                self.gen_outs[trial].append(intermediate_out)      #生成图片时，通过指定的layer num来确定从哪开始。
+                self.gen_outs[trial].append(intermediate_out)   
 
                 self.G_io.end_layer = self.config['end_layer']
-
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            #This so-called project make me feel weired
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             
             #project back to image
             # if self.image_project:
@@ -767,15 +674,10 @@ class GradientReconstructor():
             for current_step in pbar:
                 # img_gen = self.generator(z, c.float(), 1)
                 lr = self.get_lr(current_step / steps, learning_rate)
-                # select_idx = random.randint(0, self.num_images - 1)
                 # optimizer = torch.optim.Adam([optim_param[0][select_idx]], lr=learning_rate)
                 optimizer.param_groups[0]['lr'] = lr
 
                 _x[trial] = self.gen_dummy_data(self.G_io, self.config['generative_model'], dummy_z[trial], gen_outs=self.gen_outs[trial], ys=self.ys[trial], img_size=img_size, start_layer=start_layer) 
-                # if self.mae is not None:
-                #     dummy_data = torch.nn.functional.interpolate(_x[trial], size=(224, 224), mode='area')
-                #     _, y, _ = self.mae(dummy_data.float(), mask_ratio=0.75)
-                #     mae_output = self.mae.unpatchify(y)
                 losses = [0, 0, 0, 0, 0]  
                 optimizer.zero_grad()
                 self.dummy_z = dummy_z[trial]
@@ -809,7 +711,7 @@ class GradientReconstructor():
                     # self.G_io = nn.DataParallel(self.G_io)
                     # self.G_io.to(self.device)
                 intermediate_out, new_ys = self.G_io(self.gen_outs[trial][-1], self.ys[trial].float(), 1)   if start_layer > 0 else self.G_io(dummy_z[trial], self.ys[trial].float(), 1)
-                self.gen_outs[trial].append(intermediate_out)      #生成图片时，通过指定的layer num来确定从哪开始。
+                self.gen_outs[trial].append(intermediate_out)   
                 self.ys[trial] = new_ys
                 self.G_io.end_layer = self.config['end_layer']
                 # self.G_io = nn.DataParallel(self.G_io)
@@ -829,8 +731,6 @@ class GradientReconstructor():
         #     input_data = [input_data]
 
         res = []
-        loss_threshole = 0.005
-        # loss_threshole = 1
 
         if self.generative_model_name == 'stylegan2_io' or self.config['start_layer'] > 0:
             self.config['KLD'] = 0
@@ -863,14 +763,6 @@ class GradientReconstructor():
                 best_layer_score = dict(stats)
             res[i] = [prefix + f'layer{i}', opt_img.detach(), stats]
             res.append(['Best_' + prefix + 'first_' + str(i) + '_layer' , best_layer_img, best_layer_score])
-            # if i == 4:
-            #   res.append(['Best_' + prefix + 'first_' + str(i + 1) + '_layer' , best_layer_img, best_layer_score])
-            # if i >= 5 and best_layer_score['opt'] < loss_threshole:    #early stop
-            #     print("Early stop at: layer{}".format(i + 1))
-            #     break 
-
-        # res.append([best_layer_name, best_layer_img, best_layer_score])
-        # res.append(['Best_layer_num', best_layer_num, -1])
 
         return res
 
@@ -921,7 +813,6 @@ class GradientReconstructor():
         x = self._init_images(img_shape)
         # scores = torch.zeros(self.config['restarts'])
         
-        #做准备工作
         try:
             # labels = [None for _ in range(self.config['restarts'])]
             optimizer = [None for _ in range(self.config['restarts'])]
@@ -970,7 +861,7 @@ class GradientReconstructor():
                 self.count_trainable_params(x=_x[0])
             print(f"Total number of trainable parameters: {self.n_trainable}")
             
-            #正式开始循环迭代
+
             for iteration in range(max_iterations):
                 for trial in range(self.config['restarts']):
                     losses = [0,0,0,0,0]
@@ -984,14 +875,7 @@ class GradientReconstructor():
                         self.group_mean = torch.mean(torch.stack(_x), dim=0).detach().clone()
 
                     if self.G:
-                        if self.config['prompt_gen']:
-                            if self.generative_model_name in ['stylegan2_io']:
-                                dummy_zs = [self.inn(dummy_z[trial][:, k, :])[0] for k in range(STYLE_LEN)] 
-                                dummy_zs = torch.stack(dummy_zs, dim=1)
-                            else:
-                                dummy_zs, _ = self.inn(dummy_z[trial])  
-                        else:
-                            dummy_zs = dummy_z[trial]
+                        dummy_zs = dummy_z[trial]
 
                         if self.config['optim'] == 'CMA-ES':
                             ng_data = [optimizer[trial].ask() for _ in range(self.num_samples)]
@@ -1031,15 +915,7 @@ class GradientReconstructor():
                         rec_loss = optimizer[trial].step(closure)
                         rec_loss = rec_loss.item()
                     else:
-                        raw_imgs = _x[trial]
-                        if self.mae is not None:
-                            imgs_mae = torch.nn.functional.interpolate(_x[trial], size=(224, 224), mode='area')
-                            _, y, _ = self.mae(imgs_mae.float(), mask_ratio=0.75)
-                            y = self.mae.unpatchify(y)
-                            imgs = torch.nn.functional.interpolate(y, size=(self.image_size, self.image_size), mode='area')
-                        else:
-                            imgs = raw_imgs
-                            # imgs = torch.einsum('nchw->nhwc', y).permute(0, 3, 1, 2)
+                        imgs = _x[trial]
                         
                         closure = self._gradient_closure(optimizer[trial], imgs, self.input_data, labels, losses)
                         rec_loss = optimizer[trial].step(closure)
@@ -1050,10 +926,6 @@ class GradientReconstructor():
 
                     with torch.no_grad():
                         # Project into image space
-                        
-                        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                        #This so-called project make me feel weired
-                        #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
                         if (iteration + 1 == self.max_iterations) or iteration % save_interval == 0:
                             print(f'It: {iteration}. Rec. loss: {rec_loss:2.4f} | tv: {losses[0]:7.4f} | bn: {losses[1]:7.4f} | l2: {losses[2]:7.4f} | gr: {losses[3]:7.4f} | kld: {losses[4]:7.4f}')
@@ -1094,7 +966,6 @@ class GradientReconstructor():
 
             self.dummy_zs = [None for k in range(self.num_images)]
             
-            #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
             # When optimal_noise is empty list(Biggan as generative model), self.noise_zs won't be used. 
             self.noise_zs = [None for k in range(self.num_images)]  
             self.ys_zs = [None for k in range(self.num_images)]
@@ -1119,7 +990,8 @@ class GradientReconstructor():
                     else:
                         self.ys_zs[k] = self.ys_zs[k].to(self.device)        
                     self.ys_zs[k].requires_grad_(False)
-                    # print("ys_zs[k]:{}".format(self.ys_zs[k]))            # if optimal_ys:
+                    # print("ys_zs[k]:{}".format(self.ys_zs[k]))           
+            # if optimal_ys:
             #     for k in range(self.num_images):
             #         self.ys_zs[k] = torch.unsqueeze(self.dummy_z[k], 0)
             # WIP: multiple GPUs                   
@@ -1167,7 +1039,6 @@ class GradientReconstructor():
             self.count_trainable_params(G=self.G_list2d[0][0], z=self.dummy_zs[0])
             print(f"Total number of trainable parameters: {self.n_trainable}")
 
-            #TODO: 优化显存。
             print("Start Parameter search")
             # count = 0
             for trial in range(self.config['restarts']):  #Trial is model-wise
@@ -1177,33 +1048,8 @@ class GradientReconstructor():
                 for iteration in range(self.gias_iterations):
                     losses = [0,0,0,0,0]
 
-                    # #Group Regularizer
-                    # if self.config['restarts'] > 1 and trial == 0 and iteration + 1 == construct_group_mean_at and self.config['group_lazy'] > 0:
-                    #     self.do_group_mean = True
-                    #     self.group_mean = torch.mean(torch.stack(_x), dim=0).detach().clone()
-
-                    # if self.do_group_mean and trial == 0 and (iteration + 1) % construct_gm_every == 0:
-                    #     print("construct group mean")
-                    #     self.group_mean = torch.mean(torch.stack(_x), dim=0).detach().clone()
-                    
-                    # Load G to GPU
-                    # for idx, param in enumerate(self.G_list2d[trial][k].parameters()):
-                    #     count += 1
-                    #     if count == 10:
-                    #         exit()
-                    #     if idx == 1:
-                    #         print("gradient:{}".format(param))
-                    #         break
-
-                    # print("self.dummy_zs[k]:{} ys_zs[k]:".format(self.dummy_zs[k], self.ys_zs[k]))
-                    # print("Generative model name:{}".format(self.generative_model_name))
                     _x_trial = [self.gen_dummy_data(self.G_list2d[trial][k], self.generative_model_name, self.dummy_zs[k], noise=self.noise_zs[k], ys=self.ys_zs[k]).to('cpu') for k in range(self.num_images)]
                     _x[trial] = torch.stack(_x_trial).squeeze(1).to(self.device)
-                    # count += 1
-                    # print(_x[trial][0])
-                    # if count == 4:
-                    #     exit()
-                    # print(x_trial)
                     closure = self._gradient_closure(optimizer[trial], _x[trial], self.input_data, labels, losses)
                     rec_loss = optimizer[trial].step(closure)
                     if self.config['lr_decay']:
@@ -1241,138 +1087,10 @@ class GradientReconstructor():
         self.G, stats['opt'], x_optimal, _ = self.choose_optimal(_x, labels, G=self.G_list2d)
         #the returned self.G is a list for a batch of imgs
 
-        # if self.G and self.config['giml']:
-        #     self.G = G_list[optimal_index]
-        # elif self.G and self.config['gias']:
-        # self.G = G_list2d[optimal_index]   #Optimal_G
-
-        return x_optimal.detach(), stats
-
-    def inn_param_search(self, optimal_z, _x, labels, optimal_noise=None, optimal_ys=None, dryrun=False):
-        stats = defaultdict(list)
-        optimizer = [None for _ in range(self.config['restarts'])]
-        _x = [None for _ in range(self.config['restarts'])]
-        scheduler = [None for _ in range(self.config['restarts'])]
-        inn_list2d = [None for _ in range(self.config['restarts'])]  
-        
-        for trial in range(self.config['restarts']):
-            inn_list2d[trial] = [deepcopy(self.inn) for _ in range(self.num_images)]
-        dm, ds = self.mean_std
-        try:
-            
-            self.dummy_z = optimal_z.detach().clone().cpu()
-            self.dummy_zs = [None for k in range(self.num_images)]
-            if optimal_ys is not None:
-                optimal_ys.to(self.device)
-
-            # WIP: multiple GPUs                   
-            for k in range(self.num_images):
-                self.dummy_zs[k] = torch.unsqueeze(self.dummy_z[k], 0)
-
-            # split inns into GPUS manually
-            if self.num_gpus > 1:
-                print(f"Spliting generators into {self.num_gpus} GPUs...")
-                for trial in range(self.config['restarts']):
-                    for k in range(self.num_images):
-                        inn_list2d[trial][k] = inn_list2d[trial][k].to(f'cuda:{k%self.num_gpus}')
-                        inn_list2d[trial][k].requires_grad_(True)
-                        self.dummy_zs[k] = self.dummy_zs[k].to(f'cuda:{k%self.num_gpus}')
-                        self.dummy_zs[k].requires_grad_(False)
-
-            else:
-                for trial in range(self.config['restarts']):
-                    for k in range(self.num_images):
-                        inn_list2d[trial][k] = inn_list2d[trial][k].to(self.device)
-                        inn_list2d[trial][k].requires_grad_(True)
-                        self.dummy_zs[k] = self.dummy_zs[k].to(self.device)
-                        self.dummy_zs[k].requires_grad_(False)
-
-
-            for trial in range(self.config['restarts']):
-                if self.config['optim'] == 'adam':
-                    optimizer[trial] = torch.optim.Adam([{'params': inn_list2d[trial][k].parameters()} for k in range(self.num_images)], lr=self.config['prompt_lr'])
-                else:
-                    raise ValueError()
-    
-                if self.config['lr_decay']:
-                    scheduler[trial] = torch.optim.lr_scheduler.MultiStepLR(optimizer[trial],
-                                        milestones=[self.gias_iterations // 2.667, self.gias_iterations // 1.6,
-                                        self.gias_iterations // 1.142], gamma=0.1)   # 3/8 5/8 7/8
-
-            #Unload G to CPU
-            for trial in range(self.config['restarts']):
-                for k in range(self.num_images):
-                    inn_list2d[trial][k].cpu()            
-
-            self.count_trainable_params(G=inn_list2d[0][0], z=self.dummy_zs[0])
-            print(f"Total number of trainable parameters: {self.n_trainable}")
-
-            #TODO: 优化显存。
-            print("Start Parameter search")
-            self.G.to(self.device)
-
-            for trial in range(self.config['restarts']):  #Trial is model-wise
-
-                for k in range(self.num_images):
-                    inn_list2d[trial][k].to(f'cuda:{k%self.num_gpus}')
-                for iteration in range(self.config['prompt_iteration']):
-                    losses = [0,0,0,0,0]
-                    if self.generative_model_name in ['stylegan2_io']:
-                        dummy_input = [None for k in range(self.num_images)]
-                        for k in range(self.num_images):
-                            dummy_tmp = [inn_list2d[trial][k](self.dummy_zs[k][:, style_idx, :])[0].cpu() for style_idx in range(STYLE_LEN)] 
-                            dummy_input[k] = torch.stack(dummy_tmp, dim=1)
-                        dummy_input = torch.stack(dummy_input).squeeze(1).to(self.device)
-                    else:
-                        dummy_input = [inn_list2d[trial][k](self.dummy_zs[k])[0].cpu() for k in range(self.num_images)]
-                        dummy_input = torch.stack(dummy_input).squeeze(1).to(self.device)
-                    _x[trial] = self.gen_dummy_data(self.G, self.generative_model_name, dummy_input, noise=optimal_noise, ys=optimal_ys)
-                
-                    closure = self._gradient_closure(optimizer[trial], _x[trial], self.input_data, labels, losses)
-                    rec_loss = optimizer[trial].step(closure)
-                    if self.config['lr_decay']:
-                        scheduler[trial].step()
-                    
-                    with torch.no_grad():
-                        # Project into image space
-                        _x[trial].data = torch.max(torch.min(_x[trial], (1 - dm) / ds), -dm / ds)
-
-                        if (iteration + 1 == self.gias_iterations) or iteration % save_interval == 0:
-                            print(f'It: {iteration}. Rec. loss: {rec_loss.item():2.4E} | tv: {losses[0]:7.4f} | bn: {losses[1]:7.4f} | l2: {losses[2]:7.4f} | gr: {losses[3]:7.4f}')
-
-                if dryrun:
-                    break
-                
-                for k in range(self.num_images):
-                    inn_list2d[trial][k].cpu()
-                
-                if dryrun:
-                    break
-
-        except KeyboardInterrupt:
-            print(f'Recovery interrupted manually in iteration {iteration}!')
-            pass
-
-        #Unload G to CPU
-        for trial in range(self.config['restarts']):
-            for k in range(self.num_images):
-                inn_list2d[trial][k].cpu()
-
-        self.G, stats['opt'], x_optimal, _ = self.choose_optimal(_x, labels, G=inn_list2d)
-        #the returned self.G is a list for a batch of imgs
-
-        # if self.G and self.config['giml']:
-        #     self.G = G_list[optimal_index]
-        # elif self.G and self.config['gias']:
-        # self.G = G_list2d[optimal_index]   #Optimal_G
 
         return x_optimal.detach(), stats
 
     def _init_images(self, img_shape):
-        # #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-        # # For MAE
-        # img_shape = (3, 224, 224)
-        # #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
         if self.images is not None:
             return [img.detach().clone().to(self.device) for img in self.images]
         elif self.config['init'] == 'randn':
@@ -1390,8 +1108,6 @@ class GradientReconstructor():
             # print(f"label:{label}")
             num_images = label.shape[0]
             num_gradients = len(input_gradient)
-
-            #考虑了多Batch、多个梯度的情况
             # print("num_images:{} num_gradients:{}".format(num_images, num_gradients))
             batch_size = num_images // num_gradients
             num_batch = num_images // batch_size
