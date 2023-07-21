@@ -6,7 +6,7 @@ A PyTorch official implementation for [GIFD: A Generative Gradient Inversion Met
 ![pipeline](./figures/pipeline.png)
 
 ## Results
-![results](./figures/results.jpg)
+![results](./figures/.jpg)
 
 ## Setup
 We provide environment configuration file exported by Anaconda, which can help you build up conveniently.
