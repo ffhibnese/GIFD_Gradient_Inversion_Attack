@@ -3,10 +3,10 @@
 
 A PyTorch official implementation for [GIFD: A Generative Gradient Inversion Method with Feature Domain Optimization](), accepted to ICCV-2023.
 
-![pipeline](./figures/pipeline.png)
+![pipeline](./figures/pipe.png)
 
 ## Results
-![results](./figures/.jpg)
+![results](./figures/results.jpg)
 
 ## Setup
 We provide environment configuration file exported by Anaconda, which can help you build up conveniently.
