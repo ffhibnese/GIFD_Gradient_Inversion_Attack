@@ -32,10 +32,10 @@ You can start by specifying the path of the config file.
 ## Citation
 
 ## Acknowledgement
-Our code is based on [invertingGradients](https://github.com/JonasGeiping/invertinggradients) and [ILO](https://github.com/giannisdaras/ilo).
+Our code is based on [invertingGradients](https://github.com/JonasGeiping/invertinggradients) and [ILO](https://github.com/giannisdaras/ilo) and we are grateful to their great devotion.
 
 For BigGAN, we use PyTorch official [implementation and weights](https://github.com/rosinality/stylegan2-pytorch).
 
 For StyleGAN2, we adapt [Pytorch implementation](https://github.com/rosinality/stylegan2-pytorch), which is based on the [official Tensorflow code](https://github.com/NVlabs/stylegan2).
 
-We express great gratitude for their contribution to our community.
+We express great gratitude for their contribution to our community!
