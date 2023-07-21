@@ -9,7 +9,7 @@ A PyTorch official implementation for [GIFD: A Generative Gradient Inversion Met
 ![results](./figures/results.jpg)
 
 ## Setup
-We provide environment configuration file exported by Anaconda, which can help you build up conveniently.
+We provide the environment configuration file exported by Anaconda, which can help you build up conveniently.
 ```bash
 conda env create -f environment.yml
 conda activate GIFD 
@@ -32,10 +32,10 @@ You can start by specifying the path of the config file.
 ## Citation
 
 ## Acknowledgement
-Our code is based on [invertingGradients](https://github.com/JonasGeiping/invertinggradients) and [ILO](https://github.com/giannisdaras/ilo) and we are grateful to their great devotion.
+Our code is based on [invertingGradients](https://github.com/JonasGeiping/invertinggradients) and [ILO](https://github.com/giannisdaras/ilo) and we are grateful for their great devotion.
 
 For BigGAN, we use PyTorch official [implementation and weights](https://github.com/rosinality/stylegan2-pytorch).
 
-For StyleGAN2, we adapt [Pytorch implementation](https://github.com/rosinality/stylegan2-pytorch), which is based on the [official Tensorflow code](https://github.com/NVlabs/stylegan2).
+For StyleGAN2, we adapt this [Pytorch implementation](https://github.com/rosinality/stylegan2-pytorch), which is based on the [official Tensorflow code](https://github.com/NVlabs/stylegan2).
 
 We express great gratitude for their contribution to our community!
