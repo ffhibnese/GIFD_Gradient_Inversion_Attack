@@ -1,16 +1,16 @@
   Introduction : 'GAN-free methods for gradient inversion attack.'
   
-  optim : "GAN_free"    #optim method
-  cost_fn : "sim_cmpr0"   #the type of loss function 
-  set_seed : None
-  indices : "def"      #decide which part of gradients to be involved in the final gradients match loss.
+  optim : 'GAN_free'    #optim method, ['GAN_based', 'GAN_free']
+  cost_fn : 'sim_cmpr0'   #the type of loss function 
+  set_seed : None      # random seed. Following geiping et. al., we do not give random seed for GAN-free methods.
+  indices : 'def'      #decide which part of gradients to be involved in the final gradients match loss.
   weights : 'equal'    #weight of every graident scalar's matching loss
   init : 'randn'     #how we initial the original latent code.
-  model : "ResNet18"   #FL model
+  model : 'ResNet18'   #FL model
   restarts : 4
 
-  num_images : 1   #How many images we want to reconstruct at a batch
-  num_exp : 10
+  num_images : 1   # the number of images to reconstruct at a batch
+  num_exp : 10     # the number of experiments
   target_id : 0
   lr : 0.1            #learning rate for Yin et al.
   total_variation : 0.0001     #the coefficient of total variation 
@@ -21,17 +21,17 @@
 
   max_iterations : 15000    #Maximum number of iterations for reconstruction.
 
-  gias_lr : 0.00001   #For biggan, we'd better choose smaller learning rate 
+  gias_lr : 0.00001   #For biggan, we'd better choose smaller learning rate. 
 
   # For input data
   generative_model : ''
   gen_dataset : 'ImageNet64'    # ['ImageNet64', 'FFHQ64']
-  dataset : "IMAGENET_IO"
-  data_path : "./dataset/media/imagenet/val"
+  dataset : 'IMAGENET_IO'       
+  data_path : './dataset/media/imagenet/val'  # specify your dataset path
 
   #For output data
   exp_name : 'ex1_gan_free_imagenet'   #Same latent space search
-  output_dir : "results"
+  output_dir : 'results'
 
   #Choice for GAN-free methods
   geiping : true

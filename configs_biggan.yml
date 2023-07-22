@@ -1,12 +1,12 @@
   Introduction : 'Attacks with BigGAN.'
   
-  optim : "GAN_based"    # optim method
-  cost_fn : "sim_cmpr0"   # the type of loss function for gradient inversion attacks.
+  optim : 'GAN_based'   #optim method, ['GAN_based', 'GAN_free']
+  cost_fn : 'sim_cmpr0'   # the type of loss function for gradient inversion attacks.
   set_seed : 123       # random seed. Following GGL, we set 123 as seed for BigGAN(ImageNet).
-  indices : "def"      # decide which part of gradients to be involved in the final gradients match loss.
+  indices : 'def'      # decide which part of gradients to be involved in the final gradients match loss.
   weights : 'equal'    # weight of every graident scalar's matching loss
   init : 'randn'     # how we initial the original latent code.
-  model : "ResNet18"   # FL model
+  model : 'ResNet18'   # FL model
   restarts : 4
 
   num_images : 1   # the number of images to reconstruct at a batch
@@ -27,8 +27,8 @@
   # For input data
   generative_model : 'BigGAN'
   gen_dataset : 'ImageNet64'
-  dataset : "IMAGENET_IO"
-  data_path : "./dataset/media/imagenet/val"
+  dataset : 'IMAGENET_IO'
+  data_path : './dataset/media/imagenet/val'    # specify your dataset path
 
   #For output data
   exp_name : 'ex1_biggan_imagenet'   #Same latent space search
@@ -38,7 +38,7 @@
   gias : false
   ggl : false
 
-  #For biggan
+  #For GIFD with biggan
   steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  #Total 13000
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
@@ -51,8 +51,8 @@
   do_project_noises: false
   do_project_latent: false
   max_radius_gen_out: [1000, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500]
-  max_radius_noises: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
-  max_radius_latent: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]
+  max_radius_noises: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
+  max_radius_latent: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
   
 
   # The pre-trained StyleGAN checkpoint

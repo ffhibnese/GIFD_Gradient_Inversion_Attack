@@ -1,15 +1,15 @@
   Introduction : 'Attacks with StyleGAN2.'
-  optim : "GAN_based"    #optim method
-  cost_fn : "sim_cmpr0"   #the type of loss function 
+  optim : 'GAN_based'    #optim method, ['GAN_based', 'GAN_free']
+  cost_fn : 'sim_cmpr0'   #the type of loss function 
   set_seed : 0         # random seed. Following GIAS, we set 0 as seed for StyleGAN2(FFHQ).
-  indices : "def"      #decide which part of gradients to be involved in the final gradients match loss.
+  indices : 'def'      #decide which part of gradients to be involved in the final gradients match loss.
   weights : 'equal'    #weight of every graident scalar's matching loss
   init : 'randn'     #how we initial the original latent code.
-  model : "ResNet18"   #FL model
+  model : 'ResNet18'   #FL model
   restarts : 4
 
-  num_images : 1   #How many images we want to reconstruct at a batch
-  num_exp : 10
+  num_images : 1   # the number of images to reconstruct at a batch
+  num_exp : 10     # the number of experiments
   target_id : 0
   lr : 0.03
   total_variation : 0.0001     #the coefficient of total variation
@@ -27,9 +27,8 @@
 
   generative_model : 'stylegan2_io'
   gen_dataset : 'FFHQ64'
-  # gen_dataset : 'I512'
-  dataset : "FFHQ64"
-  data_path : "./dataset/FFHQ-128"
+  dataset : 'FFHQ64'
+  data_path : './dataset/FFHQ-128'    # specify your dataset path
 
   #For output data
   exp_name : 'ex1_stylegan2_ffhq'   #Same latent space search
@@ -41,13 +40,13 @@
   gias : false
   ggl : false
 
-  #For stylegan2
+  #For GIFD with stylegan2
   steps : [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]      #8000 in total
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
   start_layer: 0
   end_layer: 8
 
-  # For projection
+  # For l-1 projection
   project : true
   do_project_gen_out: true
   do_project_noises: true

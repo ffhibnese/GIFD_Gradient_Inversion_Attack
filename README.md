@@ -17,15 +17,15 @@ conda activate GIFD
 ## Dataset and model file
 Download the [ImageNet](https://www.image-net.org/) and [FFHQ](https://github.com/NVlabs/ffhq-dataset) and provide their paths in the yml file.
 
-While the model weights of BigGAN are downloaded automatically, StyleGAN2 weights require downloaded manually.
+While the model weights of BigGAN are downloaded automatically, StyleGAN2 weights require downloaded manually as follows.
 
 `gdown --id 1c1qtz3MVTAvJpYvsMIR5MoSvdiwN2DGb` (shape predictor, placed in the root directory)
 
 `gdown --id 1JCBiKY_yUixTa6F1eflABL88T4cii2GR` (stylegan pre-trained checkpoint, placed in the inversefed\genmodels\stylegan2_io)
 
 ## Quick start
-We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods. And we give detailed descriptions of every parameter.
-You can start by specifying the path of the config file.
+We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter.
+You can simply start by specifying the path of the config file.
 
 `python rec_mult.py --config xxxx`
 
