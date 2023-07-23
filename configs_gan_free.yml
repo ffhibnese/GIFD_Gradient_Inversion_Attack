@@ -2,7 +2,7 @@
   
   optim : 'GAN_free'    #optim method, ['GAN_based', 'GAN_free']
   cost_fn : 'sim_cmpr0'   #the type of loss function 
-  set_seed : None      # random seed. Following geiping et. al., we do not give random seed for GAN-free methods.
+  set_seed :       # random seed. Following geiping et. al., we do not give random seed for GAN-free methods.
   indices : 'def'      #decide which part of gradients to be involved in the final gradients match loss.
   weights : 'equal'    #weight of every graident scalar's matching loss
   init : 'randn'     #how we initial the original latent code.

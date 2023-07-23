@@ -43,7 +43,7 @@
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
   start_layer: 0
-  end_layer: 12
+  end_layer: 13   #fixed
 
   # For l-1 projection
   project : true

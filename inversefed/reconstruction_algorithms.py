@@ -171,7 +171,7 @@ class GradientReconstructor():
         #Group Regularizer
         self.do_group_mean = False
         self.group_mean = None
-        
+
         self.loss_fn = torch.nn.CrossEntropyLoss(reduction='mean')
         self.noises = [None for i in range(self.config['restarts'])]
         self.initial_noises = [None for i in range(self.config['restarts'])]
@@ -326,7 +326,6 @@ class GradientReconstructor():
         return dummy_z
 
     def gen_dummy_data(self, G, generative_model_name, dummy_z, gen_outs=[None], noise=None, ys=None, img_size=-1, start_layer = 0):
-
         if not torch.is_tensor(dummy_z):  # CMA-ES
             # dummy_z = [torch.Tensor(z).to(self.device) for z in dummy_z]
             dummy_z = torch.Tensor(dummy_z).to(self.device)
@@ -336,8 +335,6 @@ class GradientReconstructor():
             dummy_data = G(dummy_z, noise_mode='random')
         elif generative_model_name.startswith('stylegan2'):
             if generative_model_name.endswith('io'):  #gen_outs=None when searching the latent space.
-                # latent_w = self.mpl(dummy_z)
-                # print(f"gen_outs:{self.gen_outs}")
                 if self.config['optim'] == 'CMA-ES':
                     with torch.no_grad():
                         dummy_data, _ = G([dummy_z.float()], input_is_latent=True, noise=noise, layer_in=gen_outs[-1])
@@ -356,22 +353,21 @@ class GradientReconstructor():
                     dummy_z = dummy_z.tanh()
                     dummy_data, _ = G(dummy_z, ys.float(), 1) if G.start_layer == 0 else G(gen_outs[-1], ys.float(), 1)
             else:
+                # print("start layer:{} end_layer:{} ys:{} dummy_z's size:{}".format(start_layer, ys.shape, dummy_z.shape))
                 dummy_data, _ = G(dummy_z, ys.float(), 1) if start_layer == 0 else G(gen_outs[-1], ys.float(), 1)
-            #TODO: If interpolate works, replace the avg_pool2d before.
+                # print("dummy_data:{}".format(dummy_data.shape))
+                # exit()
             dummy_data = torch.nn.functional.interpolate(dummy_data, size=(self.image_size, self.image_size), mode='area')
-            # dummy_data = torch.nn.functional.interpolate(dummy_data, size=(img_size, img_size), mode='area')
 
         elif generative_model_name in ['stylegan2-ada-z']:
             dummy_data = G(dummy_z, None, truncation_psi=0.5, truncation_cutoff=8)
         elif generative_model_name in ['DCGAN', 'DCGAN-untrained']:
             dummy_data = G(dummy_z)
         
-        # # TODO:
         dm, ds = self.mean_std
         dm, ds = dm.to(running_device), ds.to(running_device)
-        # print("dummy_data dimension:{}".format(dummy_data.shape))
+
         dummy_data = (dummy_data + 1) / 2
-        # print("dm's shape:{} ds's shape:{} dummy_data's shape:{}".format(dm.shape, ds.shape, dummy_data.shape))
         dummy_data = (dummy_data - dm) / ds
         
         return dummy_data
@@ -394,13 +390,12 @@ class GradientReconstructor():
 
     def reconstruct(self, input_data, labels, img_shape=(3, 32, 32), dryrun=False, tol=None):
         """Reconstruct image from gradient."""
-        #TODO
         # if labels is None:
-        if torch.is_tensor(input_data[0]):
+        if torch.is_tensor(input_data[0]):  
             labels_tmp = self.infer_label(input_data, num_inputs=self.num_images)
             self.input_data = [input_data]
-        else:
-            labels_tmp = [self.infer_label(grad, num_inputs=self.num_images // len(input_data)) for grad in input_data]  #2021 CVPR Yin et al.
+        else:   # mutiple gradients
+            labels_tmp = [self.infer_label(grad, num_inputs=self.num_images // len(input_data)) for grad in input_data]  
             labels_tmp = torch.stack(labels_tmp).squeeze()
             self.input_data = input_data
         self.reconstruct_label = False
@@ -516,7 +511,7 @@ class GradientReconstructor():
 
     def invert_stylegan2(self, dummy_z, labels, start_layer, noise_list, steps, index):
         learning_rate = self.config['lr_io'][index]
-        print(f"Running round {index + 1} / {len(self.config['steps'])} of ILO.")
+        print(f"Running round {index + 1} / {len(self.config['steps'])} of GIFD.")
 
 
         _x = [None for _ in range(self.config['restarts'])]        
@@ -625,7 +620,7 @@ class GradientReconstructor():
     def invert_biggan(self, dummy_z, labels, start_layer, steps, index, img_size=-1):
         
         print("The start_layer:{}".format(start_layer))
-        print(f"Running round {index + 1} / {len(self.config['steps'])} of ILO.")
+        print(f"Running round {index + 1} / {len(self.config['steps'])} of GIFD.")
 
 
         learning_rate = self.config['lr_io'][index]
@@ -694,8 +689,6 @@ class GradientReconstructor():
                         deviation = project_onto_l1_ball(self.gen_outs[trial][-1] - prev_gen_out,
                                                         self.config['max_radius_gen_out'][index])
                         self.gen_outs[trial][-1].data = (prev_gen_out + deviation).data
-                # print("After z:{}".format(z))
-                # print("After:{}".format(z[0]))
 
                 pbar.set_description(
                     (
@@ -736,8 +729,6 @@ class GradientReconstructor():
             self.config['KLD'] = 0
 
         print("-------------Start intermidiate space search---------------")
-        best_layer_name = ''
-        best_layer_num = -1 
         best_layer_img = None
         best_layer_score = {'opt':np.inf}
         res = [[prefix + f'layer{i}', None, {'opt':-1}] for i in range(len(self.config["steps"]))]
@@ -949,8 +940,8 @@ class GradientReconstructor():
         except KeyboardInterrupt:
             print(f'Recovery interrupted manually in iteration {iteration}!')
             pass
-
-        self.G.to("cpu")
+        if self.G:
+            self.G.to("cpu")
         
         return _x
 
@@ -1221,7 +1212,7 @@ class GradientReconstructor():
         return initial_lr * lr_ramp
 
     @staticmethod
-    def infer_label(input_gradient, num_inputs=1):
+    def infer_label(input_gradient, num_inputs=1):  
         last_weight_min = torch.argsort(torch.sum(input_gradient[-2], dim=-1), dim=-1)[:num_inputs]
         labels = torch.sort(last_weight_min.detach().reshape((-1,)).requires_grad_(False))[0]     # Use sort to adjust the order of labels as the same to grouth truth 
         return labels

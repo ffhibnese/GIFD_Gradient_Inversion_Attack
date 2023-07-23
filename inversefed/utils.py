@@ -10,7 +10,6 @@ import numpy as np
 import socket
 import datetime
 import pandas as pd
-from mae import models_mae
 from matplotlib import pyplot as plt
 from .nn import inn
 import pickle
@@ -19,8 +18,6 @@ def system_startup(args=None, defs=None):
     """Print useful system information."""
     # Choose GPU device and print status information:
     
-    #!!!!!!!!!!!!!!!!!!!
-    #pay attention
     device = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
     setup = dict(device=device, dtype=torch.float)  # non_blocking=NON_BLOCKING
     print('Currently evaluating -------------------------------:')

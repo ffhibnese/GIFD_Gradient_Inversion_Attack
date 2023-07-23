@@ -4,8 +4,6 @@ Optional arguments can be found in inversefed/options.py
 This CLI can recover the baseline experiments.
 """
 import os
-#!!!!!!!!!!!
-#pay attention
 #limit the visual gpus
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
@@ -57,7 +55,6 @@ args = parser.parse_args()
 if args.target_id is None:
     args.target_id = 0
 args.save_image = True
-args.signed = not args.unsigned
 
 
 # Parse training strategy
@@ -86,7 +83,7 @@ if __name__ == "__main__":
     loss_fn, trainloader, validloader = inversefed.construct_dataloaders(config['dataset'], defs, data_path=config['data_path'])
 
     set_seed = config['set_seed']
-    if set_seed:
+    if isinstance(set_seed, int):
         print("Set seed:{}".format(set_seed))
         torch.manual_seed(set_seed)
     
@@ -106,8 +103,7 @@ if __name__ == "__main__":
     model.eval()
 
     if config['optim'] == 'GAN_based':
-        config_m = dict(signed=args.signed,
-                      cost_fn=config['cost_fn'],
+        config_m = dict(cost_fn=config['cost_fn'],
                       indices=config['indices'],
                       weights=config['weights'],
                       lr=config['lr'] if config['lr'] is not None else 0.1,
@@ -124,7 +120,7 @@ if __name__ == "__main__":
                       dataset=config['dataset'],
                       #params for inter optim
                       ckpt= config['ckpt'],
-                      inter_optim = config['inter_optim'],
+                      gifd = config['gifd'],
                       steps =  config['steps'],
                       lr_io =  config['lr_io'],
                       start_layer = config['start_layer'],
@@ -152,8 +148,7 @@ if __name__ == "__main__":
                       gias_iterations=config['gias_iterations'],
                       )
     elif config['optim'] == 'GAN_free':
-        config_m = dict(signed=args.signed,
-                      cost_fn=config['cost_fn'],
+        config_m = dict(cost_fn=config['cost_fn'],
                       indices=config['indices'],
                       weights=config['weights'],
                       lr=config['lr'] if config['lr'] is not None else 0.1,
@@ -273,7 +268,7 @@ if __name__ == "__main__":
             if G is None:
                 G = rec_machine.G
             print("Real labels:{}".format(labels))
-            result = rec_machine.reconstruct([input_gradient], labels, img_shape=img_shape, dryrun=iter_dryrun)  #++++++++++++++++++++
+            result = rec_machine.reconstruct(input_gradient, labels, img_shape=img_shape, dryrun=iter_dryrun)  #++++++++++++++++++++
             #+++++++++++++++++++++++++++
             if iter_dryrun:
                 continue

@@ -313,7 +313,6 @@ class BigGAN(nn.Module):
         self.start_layer = 0
         self.end_layer = len(self.generator.layers)
         #++++++++++++++++++++++++++++++++++++++++
-        # print("Is there a end_layer?{}".format(self.end_layer))
 
     def forward(self, z, y, truncation):
         # print("Start_layer:{},End_layer:{}".format(self.start_layer, self.end_layer))

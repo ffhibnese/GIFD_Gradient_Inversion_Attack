@@ -36,7 +36,7 @@
 
 
   #params for algorithm choice
-  gifd : false
+  gifd : true
   gias : false
   ggl : false
 
@@ -44,7 +44,7 @@
   steps : [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]      #8000 in total
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
   start_layer: 0
-  end_layer: 8
+  end_layer: 8      #fixed
 
   # For l-1 projection
   project : true
