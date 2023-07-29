@@ -27,7 +27,7 @@ While the model weights of BigGAN are downloaded automatically, StyleGAN2 weight
 We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter.
 You can simply start by specifying the path of the config file.
 
-`python rec_mult.py --config xxxx`
+`python rec_mult.py --config $CONFIG_PATH`
 
 ## Citation
 
