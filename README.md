@@ -30,6 +30,12 @@ You can simply start by specifying the path of the config file.
 `python rec_mult.py --config $CONFIG_PATH`
 
 ## Citation
+@article{fang2023gifd,
+  title={GIFD: A Generative Gradient Inversion Method with Feature Domain Optimization},
+  author={Fang, Hao and Chen, Bin and Wang, Xuan and Wang, Zhi and Xia, Shu-Tao},
+  journal={ICCV 2023},
+  year={2023}
+}
 
 ## Acknowledgement
 Our code is based on [invertingGradients](https://github.com/JonasGeiping/invertinggradients) and [ILO](https://github.com/giannisdaras/ilo) and we are grateful for their great devotion.
