@@ -24,16 +24,20 @@ While the model weights of BigGAN are downloaded automatically, StyleGAN2 weight
 `gdown --id 1JCBiKY_yUixTa6F1eflABL88T4cii2GR` (stylegan pre-trained checkpoint, placed in the inversefed\genmodels\stylegan2_io)
 
 ## Quick start
-We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter.
+We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter. Feel free to contact me at fang-h23@mails.tsinghua.edu.cn if you have any concerns.
 You can simply start by specifying the path of the config file.
 
 `python rec_mult.py --config $CONFIG_PATH`
 
 ## Citation
 @article{fang2023gifd,
+
   title={GIFD: A Generative Gradient Inversion Method with Feature Domain Optimization},
+  
   author={Fang, Hao and Chen, Bin and Wang, Xuan and Wang, Zhi and Xia, Shu-Tao},
+  
   journal={ICCV 2023},
+  
   year={2023}
 }
 
