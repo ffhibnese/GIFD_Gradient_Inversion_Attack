@@ -30,14 +30,11 @@ You can simply start by specifying the path of the config file.
 `python rec_mult.py --config $CONFIG_PATH`
 
 ## Citation
-@article{fang2023gifd,
-
+@inproceedings{fang2023gifd,
   title={GIFD: A Generative Gradient Inversion Method with Feature Domain Optimization},
-  
   author={Fang, Hao and Chen, Bin and Wang, Xuan and Wang, Zhi and Xia, Shu-Tao},
-  
-  journal={ICCV 2023},
-  
+  booktitle={Proceedings of the IEEE/CVF International Conference on Computer Vision},
+  pages={4967--4976},
   year={2023}
 }
 
