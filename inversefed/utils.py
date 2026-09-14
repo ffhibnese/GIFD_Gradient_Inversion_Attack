@@ -11,7 +11,6 @@ import socket
 import datetime
 import pandas as pd
 from matplotlib import pyplot as plt
-from .nn import inn
 import pickle
 
 def system_startup(args=None, defs=None):
@@ -38,19 +37,18 @@ def save_to_table(out_dir, name, dryrun, **kwargs):
         os.makedirs(out_dir)
     fname = os.path.join(out_dir, f'table_{name}.csv')
     fieldnames = list(kwargs.keys())
+    new_row = pd.DataFrame([kwargs], columns=fieldnames)
 
     # Read or write header
     try:
         if os.path.isfile(fname):
             old_table = pd.read_csv(fname)
-        data = old_table.append(kwargs, ignore_index=True)
-        # with open(fname, 'r') as f:
-        #     reader = csv.reader(f, delimiter='\t')
-        #     header = [line for line in reader][0]
+            data = pd.concat([old_table, new_row], ignore_index=True) if not old_table.empty else new_row
+        else:
+            data = new_row
     except Exception as e:
         print('Creating a new .csv table...')
-        data = pd.DataFrame(columns = fieldnames)
-        data = data.append(kwargs, ignore_index=True)
+        data = new_row
     if not dryrun:
         # Add row for this experiment
         data.to_csv(fname, index=None)

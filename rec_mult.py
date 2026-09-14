@@ -6,7 +6,8 @@ This CLI can recover the baseline experiments.
 import os
 #limit the visual gpus
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+# Respect a user-specified device instead of always forcing GPU 0.
+os.environ["CUDA_VISIBLE_DEVICES"] = os.environ.get("CUDA_VISIBLE_DEVICES", "0")
 
 import torch
 import torchvision
@@ -47,7 +48,7 @@ parser.add_argument('--batch_size', default=4, type=int, help='Number of mini ba
 parser.add_argument('--local_lr', default=1e-4, type=float, help='Local learning rate for federated averaging')
 parser.add_argument('--checkpoint_path', default='', type=str, help='Local learning rate for federated averaging')
 parser.add_argument('--gan', default='stylegan2', type=str, help='GAN model option:[stylegan2, biggan]')
-parser.add_argument('--config', default='./config_stylegan2', type=str, help='Path of selected config file.')
+parser.add_argument('--config', default='./configs_stylegan2.yml', type=str, help='Path of selected config file.')
 
 
 

@@ -1,7 +1,13 @@
+import os
 import torch
 import torch.nn as nn
 import yaml
 import pickle
+
+# Checkpoints of the (optional) StyleGAN2-ADA decoders are not shipped with this
+# repository. Point this variable to a local snapshot instead of hard-coding a
+# machine-specific path.
+STYLEGAN2_ADA_CKPT = os.environ.get('STYLEGAN2_ADA_CKPT', '')
 
 
 def load_decoder_stylegan2(config, device, dataset='FFHQ', untrained=True, ada=False, cond=False):
@@ -69,7 +75,7 @@ def load_decoder_stylegan2_ada(config, device, dataset='I128'):
     from .genmodels.stylegan2_ada_pytorch import legacy
     network_pkl = ''
     if dataset.startswith('I'):
-        network_pkl = f'/home/jjw/projects/inverting-quantized-gradient/models/GANs/stylegan2_ada_pytorch/output/00010-ImageNet128x128-auto2/network-snapshot-025000.pkl'
+        network_pkl = STYLEGAN2_ADA_CKPT
 
     elif dataset == 'C10':
         network_pkl = 'inversefed/genmodels/stylegan2_ada_pytorch/cifar10u-cifar-ada-best-fid.pkl'
@@ -86,7 +92,7 @@ def load_decoder_stylegan2_untrained(config, device, dataset='I128'):
     from .genmodels.stylegan2_ada_pytorch import legacy
 
     if dataset == 'I128' or dataset == 'I64' or dataset == 'I32':
-        network_pkl = f'/home/jjw/projects/inverting-quantized-gradient/models/GANs/stylegan2_ada_pytorch/output/00010-ImageNet128x128-auto2/network-snapshot-025000.pkl'
+        network_pkl = STYLEGAN2_ADA_CKPT
         print('Loading networks from "%s"...' % network_pkl)
         G = None
         with dnnlib.util.open_url(network_pkl) as f:

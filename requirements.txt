@@ -1,0 +1,20 @@
+# Alternative to environment.yml for newer software stacks.
+# Lower bounds only -- the code is developed and verified with
+# Python 3.8 / PyTorch 1.12 / CUDA 10.2 (see environment.yml), but it runs on
+# more recent stacks as well. Note that `inversefed/genmodels/stylegan2_io/op`
+# JIT-compiles CUDA extensions, so nvcc must match the installed CUDA toolkit.
+torch>=1.12
+torchvision>=0.13
+numpy
+pandas
+pyyaml
+matplotlib
+scikit-image
+scikit-learn
+scipy
+tqdm
+lpips
+nevergrad
+cma
+opencv-python
+pillow
