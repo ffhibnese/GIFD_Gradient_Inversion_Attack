@@ -104,7 +104,7 @@ class SphericalOptimizer():
     def __init__(self, params):
         self.params = params
         with torch.no_grad():
-            self.radii = {param: (param.pow(2).sum(tuple(range(2,param.ndim)), keepdim=True)+1e-9).sqrt() for param in params}      #sum输入的维度可以是tuple，代表依次对当前tensor的这些维度进行求和。
+            self.radii = {param: (param.pow(2).sum(tuple(range(2,param.ndim)), keepdim=True)+1e-9).sqrt() for param in params}      # the reduction dims may be a tuple, summed over in order
     @torch.no_grad()
     def step(self, closure=None):
         for param in self.params:
@@ -323,7 +323,7 @@ class GradientReconstructor():
         #Here we don't map z into w.
         elif generative_model_name == "stylegan2_io":
             dummy_z = torch.randn(
-                        (num_images, 18, 512),   # 图片张数 x 层数 x 维度    这里之所以有18个隐向量，是因为它允许18层的w出现偏离。
+                        (num_images, 18, 512),   # (batch, layers, dim); one latent per layer, so each of the 18 layers may use a different w
                         dtype=torch.float,
                         requires_grad=True, device='cuda')
             dummy_z = self.mpl(dummy_z).detach().clone().requires_grad_(True)

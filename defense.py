@@ -72,8 +72,8 @@ def gradient_compression(input_gradient, percentage=10):
     for i in range(len(input_gradient)):
         grad_tensor = input_gradient[i].clone().cpu().detach().numpy()
         flattened_weights = np.abs(grad_tensor.flatten())
-        thresh = np.percentile(flattened_weights, percentage)    #取百分位数
-        grad_tensor = torch.where(abs(input_gradient[i]) < thresh, 0, input_gradient[i])   #用阈值取梯度
+        thresh = np.percentile(flattened_weights, percentage)    # percentile threshold
+        grad_tensor = torch.where(abs(input_gradient[i]) < thresh, 0, input_gradient[i])   # zero out the entries below it
         gradient[i] = torch.Tensor(grad_tensor).to(device)
     return gradient
 

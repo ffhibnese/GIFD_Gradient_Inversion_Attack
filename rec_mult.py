@@ -195,7 +195,7 @@ if __name__ == "__main__":
     iter_dryrun = False
 
     print(len(validloader.dataset))
-    for i in range(config['num_exp']):   #对不同的batch做多少次实验
+    for i in range(config['num_exp']):   # number of private batches to attack
 
         # indicator dictionary
         psnrs = {}
