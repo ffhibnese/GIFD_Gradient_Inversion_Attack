@@ -127,8 +127,19 @@ DeiT global models and `gdown` only to download the StyleGAN2 weights, so both
 can be skipped if you do not use them.
 
 > Note: `inversefed/genmodels/stylegan2_io/op` JIT-compiles two CUDA extensions
-> (`fused_bias_act`, `upfirdn2d`) at *import* time, so a working `nvcc` matching your
-> installed CUDA toolkit is required.
+> (`fused_bias_act`, `upfirdn2d`) at *import* time. This happens before anything
+> else, so a single missing or unsuitable `nvcc` makes the whole StyleGAN2 path
+> fail to import. The extensions are built with `-std=c++17`, which means
+> **CUDA 11 or newer is required**; with older toolkits the build stops at
+> `nvcc fatal : Value 'c++17' is not defined for option 'std'`. On machines whose
+> default `nvcc` is old, point the environment at a newer toolkit first, e.g.
+>
+> ```bash
+> export CUDA_HOME=/usr/local/cuda-11.8
+> export PATH=$CUDA_HOME/bin:$PATH
+> ```
+>
+> The BigGAN path is unaffected, as it uses no custom operators.
 
 ## Dataset and model file
 
