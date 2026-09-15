@@ -1,12 +1,17 @@
-# Alternative to environment.yml for newer software stacks.
-# Lower bounds only -- the code is developed and verified with
-# Python 3.8 / PyTorch 1.12 / CUDA 10.2 (see environment.yml), but it runs on
-# more recent stacks as well. Note that `inversefed/genmodels/stylegan2_io/op`
-# JIT-compiles CUDA extensions, so nvcc must match the installed CUDA toolkit.
-torch>=1.12
-torchvision>=0.13
+# Python dependencies.
+#
+# Verified with Python 3.8+ on torch 2.0.1+cu117 / torchvision 0.15.2.
+# Lower bounds only, so the file also works on newer stacks.
+#
+#   pip install -r requirements.txt
+#
+# Note: inversefed/genmodels/stylegan2_io/op JIT-compiles two CUDA extensions
+# (fused_bias_act, upfirdn2d) at import time, so nvcc must match the CUDA
+# toolkit that PyTorch was built against.
+torch>=2.0.1
+torchvision>=0.15.2
 numpy
-pandas
+pandas>=2.0
 pyyaml
 matplotlib
 scikit-image
@@ -14,7 +19,12 @@ scikit-learn
 scipy
 tqdm
 lpips
-nevergrad
-cma
+nevergrad>=0.5.0
 opencv-python
 pillow
+
+# Optional, only needed for the DeiT global models (see README).
+timm
+
+# Optional, only needed to download the StyleGAN2 weights (see README).
+gdown

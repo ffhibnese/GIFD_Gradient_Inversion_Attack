@@ -21,14 +21,18 @@ configured through `max_radius_*` in the yml files.
 
 ## Setup
 
-We provide the environment configuration file exported by Anaconda, which can help you build up conveniently.
+Install the dependencies with pip (a conda environment works just as well). The
+listed versions are the ones the code is verified with; only lower bounds are
+enforced, so newer stacks work too.
+
 ```bash
-conda env create -f environment.yml
-conda activate GIFD
+pip install -r requirements.txt
 ```
 
-For newer software stacks we also provide a pip-based `requirements.txt` with lower bounds
-only (`pip install -r requirements.txt`).
+`opencv-python` and `pillow` are used by the data pipelines, `lpips` by the
+evaluation, and `nevergrad` by the CMA-ES baseline. `timm` is only needed for the
+DeiT global models and `gdown` only to download the StyleGAN2 weights, so both
+can be skipped if you do not use them.
 
 > Note: `inversefed/genmodels/stylegan2_io/op` JIT-compiles two CUDA extensions
 > (`fused_bias_act`, `upfirdn2d`) at *import* time, so a working `nvcc` matching your
