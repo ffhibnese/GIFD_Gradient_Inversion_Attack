@@ -94,6 +94,42 @@ Metrics (PSNR, LPIPS-VGG, LPIPS-Alex, SSIM, MSE) are appended to
 Defenses are configured per experiment through `defense_method` / `defense_setting`
 (`noise`, `clipping`, `compression`, `representation`), implemented in `defense.py`.
 
+## Evaluation helpers
+
+Two small scripts under `tools/` reproduce the analyses that go beyond the
+per-image metrics written by `rec_mult.py`.
+
+**Significance of the improvements** (`tools/stat_test.py`). Every attack
+appends one row per reconstructed image to its own `table_Metrics.csv`. Point
+the script at those tables to obtain the mean and the standard deviation per
+method together with a paired t-test of each baseline against a reference
+method:
+
+```bash
+python tools/stat_test.py \
+    --runs GIFD=results/ex1_gifd/table_Metrics.csv \
+           GIAS=results/ex1_gias/table_Metrics.csv \
+           GGL=results/ex1_ggl/table_Metrics.csv \
+    --metric psnr --reference GIFD
+```
+
+Runs are paired on the `target_id` column when it is present and on row order
+otherwise. The metric column is chosen automatically, preferring the `Best_*`
+column that holds the output selected by the least gradient matching loss;
+use `--column` to select one explicitly.
+
+**Cost of one attack iteration** (`tools/profile_cost.py`). Builds the global
+model with the same helper as `rec_mult.py` and reports the wall-clock time,
+the forward FLOPs, the peak GPU memory and (when `pynvml` is available) the
+energy of a single forward+backward pass:
+
+```bash
+python tools/profile_cost.py --model ResNet18 --resolution 64 --batch-size 2
+```
+
+FLOPs are counted for the forward pass only; the backward pass of a
+convolution or a linear layer costs roughly twice as much again.
+
 ## Citation
 ```
 @inproceedings{fang2023gifd,
