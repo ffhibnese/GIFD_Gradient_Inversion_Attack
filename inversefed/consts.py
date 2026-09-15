@@ -31,3 +31,10 @@ imagenet_io_std = [0.229, 0.224, 0.225]
 
 ood_imagenet_mean = [0.485, 0.456, 0.406]
 ood_imagenet_std = [0.229, 0.224, 0.225]
+
+# Per-channel statistics of the training split. The grayscale datasets are
+# replicated to three channels so that they can be fed to the usual RGB models.
+kmnist_mean = [0.1307, 0.1307, 0.1307]
+kmnist_std = [0.3081, 0.3081, 0.3081]
+svhn_mean = [0.4377, 0.4438, 0.4728]
+svhn_std = [0.1980, 0.2010, 0.1970]

@@ -51,6 +51,29 @@ gdown --id 1JCBiKY_yUixTa6F1eflABL88T4cii2GR
 The optional StyleGAN2-ADA decoders are not shipped with the repository; if you need them,
 point the `STYLEGAN2_ADA_CKPT` environment variable at a local `network-snapshot-*.pkl`.
 
+## Supported FL models and datasets
+
+The victim (global) model is selected with the `model` field of a config and is built by
+`inversefed.nn.models.construct_model`. Besides the architectures inherited from
+`invertingGradients` (`ConvNet`, the `ResNet` family, `DenseNet-121`, `MobileNet`,
+`MNASNet`, ...), we additionally support:
+
+| `model` | Source | Note |
+|---|---|---|
+| `AlexNet`, `VGG-16` | torchvision | |
+| `ViT-Base`, `ViT-Large`, `ViT-Huge` | torchvision | patch size 16 / 16 / 14 |
+| `DeiT-Small`, `DeiT-Tiny` | `timm` | install with `pip install timm` |
+
+Transformer architectures build their positional embeddings from the input resolution, so
+the image size of the FL dataset is passed to the constructor automatically. Note that the
+image size must be a multiple of the patch size (e.g. `ViT-Huge` uses patches of 14 and
+therefore does not accept 64 x 64 inputs).
+
+Private datasets are selected with the `dataset` field and are built by
+`inversefed.data.construct_dataloaders`: `IMAGENET_IO` (ImageNet ILSVRC 2012), `FFHQ64` /
+`FFHQ128`, `CIFAR10`, `CIFAR100`, `MNIST`, `KMNIST`, `SVHN`, and the out-of-distribution
+variants `OOD_FFHQ` / `OOD_IMAGENET`.
+
 ## Quick start
 
 We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter. Feel free to contact me at fang-h23@mails.tsinghua.edu.cn if you have any concerns.

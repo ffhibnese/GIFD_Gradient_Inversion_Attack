@@ -13,10 +13,28 @@ import numpy as np
 from ..utils import set_random_seed
 
 
+# Convolutional and transformer architectures used as the global (victim) model
+# in our FL evaluation, resolved to their torchvision / timm constructors.
+VIT_ARCHS = {
+    'ViT-Base': 'vit_b_16', 'ViT-B': 'vit_b_16',
+    'ViT-Large': 'vit_l_16', 'ViT-L': 'vit_l_16',
+    'ViT-Huge': 'vit_h_14', 'ViT-H': 'vit_h_14',
+}
+
+DEIT_ARCHS = {
+    'DeiT-Small': 'deit_small_patch16_224', 'DeiT-S': 'deit_small_patch16_224',
+    'DeiT-Tiny': 'deit_tiny_patch16_224', 'DeiT-T': 'deit_tiny_patch16_224',
+}
 
 
-def construct_model(model, num_classes=10, seed=None, num_channels=3, modelkey=None):
-    """Return various models."""
+
+
+def construct_model(model, num_classes=10, seed=None, num_channels=3, modelkey=None, image_size=None):
+    """Return various models.
+
+    `image_size` is only consulted by architectures whose positional embeddings or
+    feature map sizes depend on the input resolution (e.g. Vision Transformers).
+    """
     if modelkey is None:
         if seed is None:
             model_init_seed = np.random.randint(0, 2**31 - 10)
@@ -164,6 +182,32 @@ def construct_model(model, num_classes=10, seed=None, num_channels=3, modelkey=N
                             in_shape=in_shape, mult=4)
     elif model == 'LeNetZhu':
         model = LeNetZhu(num_channels=num_channels, num_classes=num_classes)
+    elif model in ['AlexNet']:
+        model = torchvision.models.alexnet(num_classes=num_classes)
+        if num_channels != 3:
+            model.features[0] = torch.nn.Conv2d(num_channels, 64, kernel_size=11, stride=4, padding=2)
+    elif model in ['VGG-16', 'VGG16']:
+        model = torchvision.models.vgg16(num_classes=num_classes)
+        if num_channels != 3:
+            model.features[0] = torch.nn.Conv2d(num_channels, 64, kernel_size=3, padding=1)
+    elif model in VIT_ARCHS:
+        # torchvision builds the positional embeddings from `image_size`, which
+        # therefore has to match the resolution of the FL dataset. The patch
+        # size is encoded in the architecture name (vit_b_16 -> 16).
+        arch = VIT_ARCHS[model]
+        patch_size = int(arch.rsplit('_', 1)[1])
+        if image_size is not None and image_size % patch_size != 0:
+            raise ValueError(f'{model} uses a patch size of {patch_size}, so the image '
+                             f'size must be a multiple of {patch_size} (got {image_size}).')
+        kwargs = {} if image_size is None else dict(image_size=image_size)
+        model = getattr(torchvision.models, arch)(num_classes=num_classes, **kwargs)
+    elif model in DEIT_ARCHS:
+        try:
+            import timm
+        except ImportError:
+            raise ImportError(f'{model} requires the `timm` package (pip install timm).')
+        model = timm.create_model(DEIT_ARCHS[model], pretrained=False,
+                                  num_classes=num_classes, img_size=image_size or 224)
     else:
         raise NotImplementedError('Model not implemented.')
 

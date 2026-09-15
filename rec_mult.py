@@ -33,7 +33,8 @@ import lpips
 
 nclass_dict = {'I32': 1000, 'I64': 1000, 'I128': 1000, 
                'CIFAR10': 10, 'CIFAR100': 100, 'CA': 8, 'ImageNet':1000, 'IMAGENET_IO' : 1000,
-               'FFHQ': 10, 'FFHQ64': 10, 'FFHQ128': 10, 'OOD_FFHQ':10, 'OOD_IMAGENET':1000
+               'FFHQ': 10, 'FFHQ64': 10, 'FFHQ128': 10, 'OOD_FFHQ':10, 'OOD_IMAGENET':1000,
+               'MNIST': 10, 'KMNIST': 10, 'SVHN': 10
                }
 # Parse input arguments
 
@@ -88,7 +89,10 @@ if __name__ == "__main__":
         print("Set seed:{}".format(set_seed))
         torch.manual_seed(set_seed)
     
-    model, model_seed = inversefed.construct_model(config['model'], num_classes=nclass_dict[config['dataset']], num_channels=3, seed=set_seed)
+    # Architectures whose positional embeddings depend on the input resolution
+    # (e.g. Vision Transformers) need the image size of the FL dataset.
+    image_size = inversefed.reconstruction_algorithms.imsize_dict.get(config['dataset'])
+    model, model_seed = inversefed.construct_model(config['model'], num_classes=nclass_dict[config['dataset']], num_channels=3, seed=set_seed, image_size=image_size)
     
     if config['dataset'].startswith('FFHQ') or config['dataset'].endswith('FFHQ'):
         dm = torch.as_tensor(getattr(inversefed.consts, f'cifar10_mean'), **setup)[:, None, None]

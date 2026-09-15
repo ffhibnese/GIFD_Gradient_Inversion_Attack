@@ -79,6 +79,12 @@ def construct_dataloaders(dataset, defs, data_path='~/data', shuffle=True, norma
         trainset = [None]
         validset = _build_ood_imagenet(path, defs.augmentations, normalize, size=64)
         loss_fn = Classification()
+    elif dataset == 'KMNIST':
+        trainset, validset = _build_kmnist(path, defs.augmentations, normalize)
+        loss_fn = Classification()
+    elif dataset == 'SVHN':
+        trainset, validset = _build_svhn(path, defs.augmentations, normalize)
+        loss_fn = Classification()
 
 
 
@@ -330,6 +336,58 @@ def _build_permuted_Imagenet(data_path, augmentations=True, normalize=True):
     validset = full_set
 
     trainset.transform = transform
+    validset.transform = transform
+
+    return trainset, validset
+
+
+def _build_kmnist(data_path, augmentations=True, normalize=True, size=32):
+    """Define KMNIST (28x28 grayscale) resized and replicated to 3 channels."""
+    trainset = torchvision.datasets.KMNIST(root=data_path, train=True, download=True, transform=transforms.ToTensor())
+    validset = torchvision.datasets.KMNIST(root=data_path, train=False, download=True, transform=transforms.ToTensor())
+
+    data_mean, data_std = kmnist_mean, kmnist_std
+
+    transform = transforms.Compose([
+        transforms.Resize(size),
+        transforms.Lambda(lambda img: img.convert('RGB')),
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std) if normalize else transforms.Lambda(lambda x: x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.Resize(size),
+            transforms.Lambda(lambda img: img.convert('RGB')),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(data_mean, data_std) if normalize else transforms.Lambda(lambda x: x)])
+        trainset.transform = transform_train
+    else:
+        trainset.transform = transform
+    validset.transform = transform
+
+    return trainset, validset
+
+
+def _build_svhn(data_path, augmentations=True, normalize=True, size=32):
+    """Define SVHN (already RGB) resized to the given resolution."""
+    trainset = torchvision.datasets.SVHN(root=data_path, split='train', download=True, transform=transforms.ToTensor())
+    validset = torchvision.datasets.SVHN(root=data_path, split='test', download=True, transform=transforms.ToTensor())
+
+    data_mean, data_std = svhn_mean, svhn_std
+
+    transform = transforms.Compose([
+        transforms.Resize(size),
+        transforms.ToTensor(),
+        transforms.Normalize(data_mean, data_std) if normalize else transforms.Lambda(lambda x: x)])
+    if augmentations:
+        transform_train = transforms.Compose([
+            transforms.Resize(size),
+            transforms.RandomHorizontalFlip(),
+            transforms.ToTensor(),
+            transforms.Normalize(data_mean, data_std) if normalize else transforms.Lambda(lambda x: x)])
+        trainset.transform = transform_train
+    else:
+        trainset.transform = transform
     validset.transform = transform
 
     return trainset, validset
