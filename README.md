@@ -16,6 +16,34 @@ at the vector induced by the previous layer. The output of the layer attaining t
 gradient matching loss is selected as the final reconstruction. The per-layer radii are
 configured through `max_radius_*` in the yml files.
 
+### Label mapping
+
+Under label inconsistency the label inferred from the shared gradients belongs to
+the *private* label space, while a conditional generator expects the label space
+it was trained on: attacking a face classifier with an ImageNet-pretrained
+BigGAN, the inferred label `0` means "age 0-9" for the private data but "tench"
+for the generator. Feeding that label to the generator provides misleading
+conditioning and degrades the reconstruction.
+
+Label mapping inverts twice. A first coarse pass runs only `coarse_iterations`
+iterations per layer using the inferred label; the resulting image is then
+classified by a remapper `f_m(.)` trained on the GAN's own dataset, whose
+prediction is by construction a label of the generator's label space; a second
+fine-grained pass uses that label as conditioning. The remapper only needs to be
+trained once per generative prior:
+
+```bash
+python tools/train_label_mapper.py \
+    --data ./dataset/media/imagenet/train \
+    --val-data ./dataset/media/imagenet/val \
+    --dataset IMAGENET_IO --model ResNet18 --resolution 64 \
+    --epochs 20 --out label_mapper.pt
+```
+
+Then point `label_mapper_ckpt` of a config at the checkpoint and set
+`label_mapping: true` (`configs_ood_biggan.yml` does this). The technique only
+applies to conditional generators, so it stays disabled for the StyleGAN2 prior.
+
 ## Results
 ![results](./figures/results.jpg)
 

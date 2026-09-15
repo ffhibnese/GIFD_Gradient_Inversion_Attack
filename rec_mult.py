@@ -152,6 +152,9 @@ if __name__ == "__main__":
                       KLD = config['KLD'],
                       gias_lr=config['gias_lr'],
                       gias_iterations=config['gias_iterations'],
+                      #Label mapping for label-inconsistent OOD
+                      label_mapping=config['label_mapping'],
+                      coarse_iterations=config['coarse_iterations'],
                       )
     elif config['optim'] == 'GAN_free':
         config_m = dict(cost_fn=config['cost_fn'],
@@ -282,7 +285,20 @@ if __name__ == "__main__":
                 print('Defense applied: {} w/ {}.'.format(config['defense_method'], d_param))
 
 
-            rec_machine = inversefed.GradientReconstructor(model, setup['device'], (dm, ds), config_m, num_images=config['num_images'], bn_prior=bn_prior, G=G)
+            # The semantic remapper of the label mapping technique, trained on
+            # the GAN's own dataset (see tools/train_label_mapper.py).
+            fm = None
+            if config.get('label_mapper_ckpt'):
+                print("Loading the semantic remapper from {}".format(config['label_mapper_ckpt']))
+                mapper = torch.load(config['label_mapper_ckpt'], map_location=setup['device'])
+                fm, _ = inversefed.construct_model(mapper.get('arch', 'ResNet18'),
+                                                   num_classes=mapper['num_classes'],
+                                                   num_channels=3, seed=0,
+                                                   image_size=mapper.get('resolution'))
+                fm.load_state_dict(mapper['state_dict'])
+                fm.to(**setup).eval()
+
+            rec_machine = inversefed.GradientReconstructor(model, setup['device'], (dm, ds), config_m, num_images=config['num_images'], bn_prior=bn_prior, G=G, fm=fm)
 
             if G is None:
                 G = rec_machine.G

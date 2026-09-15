@@ -82,8 +82,10 @@ DEFAULT_CONFIG = dict(signed=False,
                       project=False,
                       defense_method=[],
                       defense_setting=[],
-                      num_sample=10
-
+                      num_sample=10,
+                      #Label mapping (label-inconsistent OOD)
+                      label_mapping=False,
+                      coarse_iterations=100,
                       )
 
 def _validate_config(config):
@@ -150,8 +152,12 @@ class BNStatisticsHook():
 class GradientReconstructor():
     """Instantiate a reconstruction algorithm."""
 
-    def __init__(self, model, device, mean_std=(0.0, 1.0), config=DEFAULT_CONFIG, num_images=1, G=None, bn_prior=((0.0, 1.0)) ):
-        """Initialize with algorithm setup."""
+    def __init__(self, model, device, mean_std=(0.0, 1.0), config=DEFAULT_CONFIG, num_images=1, G=None, bn_prior=((0.0, 1.0)), fm=None ):
+        """Initialize with algorithm setup.
+
+        `fm` is the classifier used as a semantic remapper by the label mapping
+        technique; it is trained on the GAN's own training dataset.
+        """
         self.config = _validate_config(config)
         self.model = model
         self.device = device
@@ -178,6 +184,8 @@ class GradientReconstructor():
         self.initial_noises = [None for i in range(self.config['restarts'])]
         self.gen_outs = [[None] for i in range(self.config['restarts'])]
         self.ys = [None for i in range(self.config['restarts'])]    #For biggan's cond_vector
+        # Semantic remapper of the label mapping technique (see `map_labels`)
+        self.fm = fm
         self.iDLG = True
         self.images = None
                 
@@ -389,6 +397,51 @@ class GradientReconstructor():
             print(f"x: {n_x}")
         self.n_trainable = n_z + n_G + n_x + n_noise
 
+    @staticmethod
+    def _best_output(res):
+        """Pick the output of the layer with the least gradient matching loss."""
+        best = [item for item in res if item[0].startswith('Best_')]
+        return best[-1][1] if best else res[-1][1]
+
+    def map_labels(self, coarse_image):
+        """
+        Predict a generator-compatible label from a coarse reconstruction.
+
+        `fm` is a classifier trained on the GAN's own training dataset, so its
+        prediction lives in the label space the generator was conditioned on.
+        Under label inconsistency the label inferred from the FL gradients
+        belongs to the private label space and would mislead a conditional
+        generator, so the coarse reconstruction is remapped before the
+        fine-grained inversion.
+        """
+        if self.fm is None:
+            raise ValueError('label_mapping requires the semantic remapper `fm`.')
+        with torch.no_grad():
+            self.fm.eval()
+            logits = self.fm(coarse_image.to(self.device))
+            return logits.argmax(dim=1)
+
+    def gifd_with_label_mapping(self, dummy_z, infer_labels, dryrun=False):
+        """Two-stage inversion: a coarse pass fixes the label, a fine pass the image."""
+        full_steps = list(self.config['steps'])
+        self.config['steps'] = [int(self.config['coarse_iterations'])] * len(full_steps)
+
+        coarse_z = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
+        coarse_res = self.inter_optimizer(coarse_z, infer_labels, -1)
+        self.config['steps'] = full_steps
+
+        coarse_img = self._best_output(coarse_res)
+        refined_labels = self.map_labels(coarse_img)
+        print(f'Label mapping: {infer_labels.tolist()} -> {refined_labels.tolist()}')
+
+        # Re-condition the generator on the refined label and search the
+        # intermediate features again from scratch.
+        self.init_var(refined_labels)
+        fine_z = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
+        res = self.inter_optimizer(fine_z, refined_labels, -1)
+        res.append(['coarse_reconstruction', coarse_img, {'opt': -1}])
+        return res
+
     def reconstruct(self, input_data, labels, img_shape=(3, 32, 32), dryrun=False, tol=None):
         """Reconstruct image from gradient."""
         # if labels is None:
@@ -466,7 +519,10 @@ class GradientReconstructor():
                 self.config['optim'] = 'adam'
                 self.config['KLD'] = -1
                 dummy_z_io = [z.detach().clone().to(self.device).requires_grad_(True) for z in dummy_z]
-                ans += self.inter_optimizer(dummy_z_io, infer_labels, -1)
+                if self.config['label_mapping']:
+                    ans += self.gifd_with_label_mapping(dummy_z_io, infer_labels, dryrun=dryrun)
+                else:
+                    ans += self.inter_optimizer(dummy_z_io, infer_labels, -1)
 
  
         else:  #GAN-free method

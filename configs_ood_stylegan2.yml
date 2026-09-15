@@ -43,6 +43,12 @@
   gias : false
   ggl : false
 
+  #Label mapping. The StyleGAN2 prior is unconditional, so there is no class
+  #label to remap and this stays disabled; it is listed for completeness.
+  label_mapping : false
+  label_mapper_ckpt : ''    # checkpoint produced by tools/train_label_mapper.py
+  coarse_iterations : 100   # iterations per layer during the coarse inversion
+
   #For GIFD with stylegan2
   steps : [1000, 1000, 1000, 1000, 1000]      # latent space + K=4 feature domains
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1]

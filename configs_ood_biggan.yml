@@ -42,6 +42,12 @@
   gias : false
   ggl : false
 
+  #This is the label-inconsistent setting, where the private labels do not match
+  #the labels BigGAN was conditioned on, so label mapping is meant to be used.
+  label_mapping : true
+  label_mapper_ckpt : ''    # checkpoint produced by tools/train_label_mapper.py
+  coarse_iterations : 100   # iterations per layer during the coarse inversion
+
   #For GIFD with biggan
   steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  # latent space + K=9 feature domains
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]

@@ -38,6 +38,13 @@
   gias : false
   ggl : false
 
+  #Label mapping for label-inconsistent OOD settings. Only meaningful for a
+  #conditional generator: the coarse reconstruction is remapped to a label of
+  #the generator's own label space before the fine-grained inversion.
+  label_mapping : false
+  label_mapper_ckpt : ''    # checkpoint produced by tools/train_label_mapper.py
+  coarse_iterations : 100   # iterations per layer during the coarse inversion
+
   #For GIFD with biggan
   steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  # latent space + K=9 feature domains, 1000 iterations each
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
