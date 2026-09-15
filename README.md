@@ -148,12 +148,20 @@ Download the [ImageNet](https://www.image-net.org/) and [FFHQ](https://github.co
 While the model weights of BigGAN are downloaded automatically, StyleGAN2 weights require downloading manually as follows.
 
 ```bash
-# shape predictor / W+ space Gaussian fit -> place in the root directory as gaussian_fit.pt
-gdown --id 1c1qtz3MVTAvJpYvsMIR5MoSvdiwN2DGb
-
-# stylegan pre-trained checkpoint -> place in inversefed/genmodels/stylegan2_io/
+# pre-trained StyleGAN2 (FFHQ) checkpoint -> place in inversefed/genmodels/stylegan2_io/
 gdown --id 1JCBiKY_yUixTa6F1eflABL88T4cii2GR
 ```
+
+The StyleGAN2 path additionally needs `gaussian_fit.pt` in the repository root,
+the Gaussian fit of the W+ space used by `MappingProxy`. It is a **torch** file
+holding two tensors of shape `(512,)`, `mean` and `std`; it is loaded with
+`torch.load` at `inversefed/reconstruction_algorithms.py:216`. The CENSOR
+repository (https://github.com/KaiyuanZh/censor) ships such a file at its root.
+
+> Note: do not confuse it with the dlib *shape predictor* (~99 MB) that some
+> instructions link to for aligning FFHQ faces. That one is a dlib model, not a
+> torch file, and nothing in this code base loads it — pointing it at
+> `gaussian_fit.pt` makes `torch.load` fail with `UnpicklingError`.
 
 The optional StyleGAN2-ADA decoders are not shipped with the repository; if you need them,
 point the `STYLEGAN2_ADA_CKPT` environment variable at a local `network-snapshot-*.pkl`.
