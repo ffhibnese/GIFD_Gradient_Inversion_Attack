@@ -187,3 +187,6 @@ ood_outputs
 concat_img
 visualize
 
+
+# Partial downloads (e.g. gdown temporary files)
+*.part

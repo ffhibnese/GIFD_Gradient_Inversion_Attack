@@ -51,6 +51,13 @@ parser.add_argument('--local_lr', default=1e-4, type=float, help='Local learning
 parser.add_argument('--checkpoint_path', default='', type=str, help='Local learning rate for federated averaging')
 parser.add_argument('--gan', default='stylegan2', type=str, help='GAN model option:[stylegan2, biggan]')
 parser.add_argument('--config', default='./configs_stylegan2.yml', type=str, help='Path of selected config file.')
+parser.add_argument('--model_ckpt', default='', type=str,
+                    help='Checkpoint of a trained global model (see tools/fl_simulation.py). '
+                         'Without it the model is randomly initialized.')
+parser.add_argument('--split_file', default='', type=str,
+                    help='Client split written by tools/fl_simulation.py; with --client the '
+                         'reconstructed images are taken from that client only.')
+parser.add_argument('--client', type=int, default=0, help='Client index of --split_file.')
 
 
 
@@ -94,6 +101,21 @@ if __name__ == "__main__":
     # (e.g. Vision Transformers) need the image size of the FL dataset.
     image_size = inversefed.reconstruction_algorithms.imsize_dict.get(config['dataset'])
     model, model_seed = inversefed.construct_model(config['model'], num_classes=nclass_dict[config['dataset']], num_channels=3, seed=set_seed, image_size=image_size)
+
+    # Attack a global model produced by several FL rounds instead of a randomly
+    # initialized one (see tools/fl_simulation.py).
+    if args.model_ckpt:
+        print("Loading the global model from {}".format(args.model_ckpt))
+        ckpt = torch.load(args.model_ckpt, map_location=setup['device'])
+        model.load_state_dict(ckpt['state_dict'])
+
+    # Restrict the attacked images to the private data of a single client.
+    client_ids = None
+    if args.split_file:
+        with open(args.split_file) as f:
+            split = json.load(f)
+        client_ids = split['clients'][args.client]
+        print("Attacking client {} ({} private samples)".format(args.client, len(client_ids)))
     
     if config['dataset'].startswith('FFHQ') or config['dataset'].endswith('FFHQ'):
         dm = torch.as_tensor(getattr(inversefed.consts, f'cifar10_mean'), **setup)[:, None, None]
@@ -194,6 +216,10 @@ if __name__ == "__main__":
     target_id = config['target_id']
     iter_dryrun = False
 
+    def dataset_index(pos):
+        """Map a position to a dataset index, honouring the client split if given."""
+        return client_ids[pos % len(client_ids)] if client_ids else pos
+
     print(len(validloader.dataset))
     for i in range(config['num_exp']):   # number of private batches to attack
 
@@ -209,7 +235,7 @@ if __name__ == "__main__":
         tid_list = []
 
         if config['num_images'] == 1:
-            ground_truth, labels = validloader.dataset[target_id]
+            ground_truth, labels = validloader.dataset[dataset_index(target_id)]
             ground_truth, labels = ground_truth.unsqueeze(0).to(**setup), torch.as_tensor((labels,), device=setup['device'])
             target_id_ = target_id + 1
             print("loaded img %d" % (target_id_ - 1))
@@ -218,7 +244,7 @@ if __name__ == "__main__":
             ground_truth, labels = [], []
             target_id_ = target_id
             while len(labels) < config['num_images']:
-                img, label = validloader.dataset[target_id_]
+                img, label = validloader.dataset[dataset_index(target_id_)]
                 target_id_ += 1
                 if (label not in labels):         
                     print("loaded img %d" % (target_id_ - 1))

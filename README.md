@@ -29,6 +29,40 @@ decay. Setting `lr_same_pace: true` instead computes `t` over the total number o
 iterations of all stages, so the whole hierarchy shares one warm-up and one decay; this
 currently only affects the StyleGAN2 path.
 
+### Federated learning settings
+
+The default configs attack a randomly initialized global model with IID private
+data. `tools/fl_simulation.py` covers the two FL factors the experiments also
+vary:
+
+- **Data heterogeneity.** The dataset classes are randomly distributed over
+  `Nclient` clients; a sample with label `l` goes to its designated client with
+  probability `q` and to any other client with probability
+  `(1 - q) / (Nclient - 1)`. With `Nclient = 10`, `q = 0.10` is the IID case and
+  larger values give increasingly non-IID clients.
+- **Number of FL rounds.** `train` runs FedAvg and stores the global model after
+  every round, so an attack can be pointed at a converged model instead of a
+  randomly initialized one.
+
+```bash
+python tools/fl_simulation.py split --dataset IMAGENET_IO \
+    --data-path ./dataset/media/imagenet/val --num-clients 10 --q 0.10 \
+    --out fl_split_q0.10.json
+
+python tools/fl_simulation.py train --dataset IMAGENET_IO \
+    --data-path ./dataset/media/imagenet/val --split fl_split_q0.10.json \
+    --rounds 5 --local-steps 1 --local-lr 0.1 --out-dir fl_rounds
+
+python rec_mult.py --config configs_biggan.yml \
+    --model_ckpt fl_rounds/global_round_5.pt \
+    --split_file fl_split_q0.10.json --client 0
+```
+
+`--model_ckpt` loads the global model of a given round, and `--split_file` with
+`--client` restricts the reconstructed images to the private data of one client.
+Both commands read the same dataset object that `rec_mult.py` samples its targets
+from, so the indices written by `split` stay valid.
+
 ### Label mapping
 
 Under label inconsistency the label inferred from the shared gradients belongs to
