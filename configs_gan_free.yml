@@ -37,6 +37,13 @@
   geiping : true
   yin : true
 
+  #Label mapping. The GAN-free methods optimize the pixels directly and never
+  #condition a generator, so this stays disabled; it is listed so that all
+  #configs expose the same set of keys.
+  label_mapping : false
+  label_mapper_ckpt : ''
+  coarse_iterations : 100
+
   #Defense parameter
   defense_method : None
   defense_setting : 
