@@ -275,9 +275,11 @@ if __name__ == "__main__":
                     d_param = 10 if settings.get('representation') is None else settings['representation']
                     input_gradient = defense.perturb_representation(input_gradient, model, ground_truth, pruning_rate=d_param)
                 if config['defense_method'] == 'orthogonal':
-                    # CENSOR: sample orthogonal gradients and keep the one that
-                    # least increases the loss of the clean gradient.
-                    d_param = 1e-4 if settings.get('orthogonal') is None else settings['orthogonal']
+                    # CENSOR (Algorithm 1, line 15): the candidate is applied
+                    # with the FL learning rate eta. `orthogonal` overrides it,
+                    # which is how the number of trials and the step size are
+                    # ablated.
+                    d_param = args.local_lr if settings.get('orthogonal') is None else settings['orthogonal']
                     input_gradient, _ = defense.orthogonal_gradient(
                         input_gradient, model, ground_truth, labels,
                         trials=config.get('our_num_tries', 20), epsilon=d_param,

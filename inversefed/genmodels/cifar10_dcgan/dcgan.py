@@ -14,7 +14,7 @@ import torchvision.datasets as dset
 import torchvision.transforms as transforms
 import torchvision.utils as vutils
 
-# python dcgan.py --dataset cifar10 --dataroot /scratch/users/vision/yu_dl/raaz.rsk/data/cifar10 --imageSize 32 --cuda --outf out_cifar --manualSeed 13 --niter 100
+# python dcgan.py --dataset cifar10 --dataroot <DATASET_ROOT> --imageSize 32 --cuda --outf out_cifar --manualSeed 13 --niter 100
 
 class Generator(nn.Module):
     def __init__(self, ngpu, nc=3, nz=100, ngf=64):

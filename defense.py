@@ -187,18 +187,23 @@ def normalize_orthogonal_gradient(ortho_gradient, original_gradient, fixed_norm=
 def orthogonal_gradient(input_gradient, model, ground_truth, labels, trials=20,
                         epsilon=1e-4, best_loss=float('inf')):
     """
-    CENSOR. Sample gradients orthogonal to the true one and keep the candidate
-    whose one-step SGD update least increases the training loss, so that the
-    released gradient stays useful for learning while leaking less information.
+    CENSOR, Algorithm 1 of the paper.
 
-    `epsilon` is the step size of that one-step update; `best_loss` should be
-    the loss of the clean gradient, so that a candidate is only accepted if it
-    does not make the loss worse than the undefended update.
+    Sample T gradients orthogonal to the true one (Phase 1, Eq. 12), normalize
+    them layer-wise to the scale of the original gradient (Phase 2) and keep the
+    candidate whose one-step update least increases the training loss (Phase 3).
+    The best gradient is initialized with the original one (line 11), so the
+    defense never returns something worse than releasing the true gradient.
+
+    `epsilon` is the learning rate eta used by the one-step update of line 15,
+    i.e. the learning rate of the FL client. `best_loss` is the loss of the
+    clean gradient (line 10).
 
     Returns the (possibly replaced) gradient and the best loss that was found.
     """
     criterion = nn.CrossEntropyLoss()
-    best_gradient = None
+    # Algorithm 1, line 11: G* = G0
+    best_gradient = [g.detach().clone() for g in input_gradient]
     best_loss = float(best_loss)
 
     original_params = [param.detach().clone() for param in model.parameters()]
@@ -228,8 +233,7 @@ def orthogonal_gradient(input_gradient, model, ground_truth, labels, trials=20,
             param.data.copy_(original)
     model.train(was_training)
 
-    if best_gradient is not None:
-        input_gradient = [g.clone() for g in best_gradient]
+    input_gradient = [g.clone() for g in best_gradient]
 
     return input_gradient, best_loss
 

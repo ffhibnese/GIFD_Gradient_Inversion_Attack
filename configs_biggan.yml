@@ -83,7 +83,8 @@
     representation : None
     orthogonal : None
 
-  #Number of orthogonal gradient samples drawn by the CENSOR defense
+  #CENSOR: number of sampling trials T (Algorithm 1). The `orthogonal` entry of
+  #defense_setting overrides the step size eta, which defaults to local_lr.
   our_num_tries : 20
 
   #For CMA-ES in GGL
