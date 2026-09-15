@@ -16,6 +16,19 @@ at the vector induced by the previous layer. The output of the layer attaining t
 gradient matching loss is selected as the final reconstruction. The per-layer radii are
 configured through `max_radius_*` in the yml files.
 
+### Optimization schedule
+
+Each search stage runs `steps[k]` Adam iterations starting from `lr_io[k]` (0.1 by
+default). The learning rate is not constant: it follows `get_lr` in
+`inversefed/reconstruction_algorithms.py`, which linearly warms the rate up from 0 over
+the first 1/20 of the iterations (`rampup = 0.05`) and then decays it to 0 with a cosine
+profile over the remaining 3/4 of them (`rampdown = 0.75`).
+
+By default every stage restarts that schedule, so each layer gets its own warm-up and
+decay. Setting `lr_same_pace: true` instead computes `t` over the total number of
+iterations of all stages, so the whole hierarchy shares one warm-up and one decay; this
+currently only affects the StyleGAN2 path.
+
 ### Label mapping
 
 Under label inconsistency the label inferred from the shared gradients belongs to
