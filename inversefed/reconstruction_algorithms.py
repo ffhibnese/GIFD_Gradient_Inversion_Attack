@@ -86,6 +86,8 @@ DEFAULT_CONFIG = dict(signed=False,
                       #Label mapping (label-inconsistent OOD)
                       label_mapping=False,
                       coarse_iterations=100,
+                      #Ablation variants of GIFD: 'z', 'f', 'e' or 'full'
+                      gifd_variant='full',
                       )
 
 def _validate_config(config):
@@ -788,9 +790,26 @@ class GradientReconstructor():
         print("-------------Start intermidiate space search---------------")
         best_layer_img = None
         best_layer_score = {'opt':np.inf}
-        res = [[prefix + f'layer{i}', None, {'opt':-1}] for i in range(len(self.config["steps"]))]
 
-        for i, steps in enumerate(self.config["steps"]):
+        # Ablation variants of Table VIII: GIFD-z only searches the latent
+        # space; GIFD-f adds the intermediate feature domain but has no l1 ball
+        # and reports the last searched layer; GIFD-e reports the layer with the
+        # least matching error; GIFD is GIFD-e plus the l1 ball limitation.
+        variant = self.config['gifd_variant']
+        if variant not in ('z', 'f', 'e', 'full'):
+            raise ValueError(f"gifd_variant must be one of 'z', 'f', 'e', 'full', got {variant!r}")
+        if variant == 'z':
+            rounds = 1
+        else:
+            rounds = len(self.config["steps"])
+        if variant != 'full':
+            self.project = False
+            for key in ('do_project_gen_out', 'do_project_noises', 'do_project_latent'):
+                self.config[key] = False
+
+        res = [[prefix + f'layer{i}', None, {'opt':-1}] for i in range(rounds)]
+
+        for i, steps in enumerate(self.config["steps"][:rounds]):
             begin_layer = i + self.config['start_layer']
 
             if begin_layer > self.config['end_layer']:
@@ -811,6 +830,19 @@ class GradientReconstructor():
                 best_layer_score = dict(stats)
             res[i] = [prefix + f'layer{i}', opt_img.detach(), stats]
             res.append(['Best_' + prefix + 'first_' + str(i) + '_layer' , best_layer_img, best_layer_score])
+
+        # Report the variant under its own name so it can be read off directly
+        # from table_Metrics.csv instead of having to know which column to take.
+        if variant == 'z':
+            # only the latent space is searched
+            res.append(['GIFD-z', res[0][1], res[0][2]])
+        elif variant == 'f':
+            # the last searched intermediate layer
+            res.append(['GIFD-f', res[rounds - 1][1], res[rounds - 1][2]])
+        elif variant == 'e':
+            res.append(['GIFD-e', best_layer_img, best_layer_score])
+        elif variant == 'full':
+            res.append(['GIFD', best_layer_img, best_layer_score])
 
         return res
 

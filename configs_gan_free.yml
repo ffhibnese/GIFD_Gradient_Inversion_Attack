@@ -44,6 +44,9 @@
   label_mapper_ckpt : ''
   coarse_iterations : 100
 
+  #Unused by the GAN-free baselines, listed so all configs share the same keys
+  gifd_variant : 'full'
+
   #Defense parameter
   defense_method : None
   defense_setting : 

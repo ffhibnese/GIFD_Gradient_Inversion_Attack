@@ -29,6 +29,23 @@ decay. Setting `lr_same_pace: true` instead computes `t` over the total number o
 iterations of all stages, so the whole hierarchy shares one warm-up and one decay; this
 currently only affects the StyleGAN2 path.
 
+### Ablation variants
+
+`gifd_variant` selects one of the variants of Table VIII, which isolate the
+contribution of each technique:
+
+| `gifd_variant` | Searches | l1 ball | Reported output |
+|---|---|---|---|
+| `z` | latent space only | no | the latent-space reconstruction |
+| `f` | latent + intermediate features | no | the **last** searched layer |
+| `e` | latent + intermediate features | no | the layer with the **least** matching error |
+| `full` (default) | latent + intermediate features | yes | the layer with the least matching error |
+
+`GIFD-e` is `GIFD-f` with the output-selection rule, and `GIFD` is `GIFD-e`
+plus the l1 ball limitation. The variant is reported under its own name in
+`table_Metrics.csv`, so it can be read off without having to know which of the
+`layer*` columns to look at.
+
 ### Federated learning settings
 
 The default configs attack a randomly initialized global model with IID private

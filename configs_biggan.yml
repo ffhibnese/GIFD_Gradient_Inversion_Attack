@@ -45,6 +45,10 @@
   label_mapper_ckpt : ''    # checkpoint produced by tools/train_label_mapper.py
   coarse_iterations : 100   # iterations per layer during the coarse inversion
 
+  #Ablation variant of GIFD: 'z' (latent only), 'f' (feature domain, no l1 ball,
+  #last layer), 'e' (least matching error), 'full' (GIFD-e plus the l1 ball)
+  gifd_variant : 'full'
+
   #For GIFD with biggan
   steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  # latent space + K=9 feature domains, 1000 iterations each
   lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]

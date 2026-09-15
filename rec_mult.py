@@ -177,6 +177,8 @@ if __name__ == "__main__":
                       #Label mapping for label-inconsistent OOD
                       label_mapping=config['label_mapping'],
                       coarse_iterations=config['coarse_iterations'],
+                      #Ablation variants: 'z', 'f', 'e' or 'full'
+                      gifd_variant=config['gifd_variant'],
                       )
     elif config['optim'] == 'GAN_free':
         config_m = dict(cost_fn=config['cost_fn'],
