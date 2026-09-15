@@ -70,10 +70,14 @@
   #Defense parameter
   defense_method : None
   defense_setting : 
-      - noise : None
-      - clipping : None
-      - compression : None
-      - representation : None
+    noise : None
+    clipping : None
+    compression : None
+    representation : None
+    orthogonal : None
+
+  #Number of orthogonal gradient samples drawn by the CENSOR defense
+  our_num_tries : 20
 
   #For CMA-ES in GGL
   KLD : 0.1  # Recommendation: 0.1 for biggan, 0.02 for stylegan2

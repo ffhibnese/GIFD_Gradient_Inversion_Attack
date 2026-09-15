@@ -236,6 +236,12 @@ if __name__ == "__main__":
                     bn_layers.append(inversefed.BNStatisticsHook(module))
 
         if args.accumulation == 0:
+            # ATSPrivacy defends the input image instead of the gradient, so it
+            # has to be applied before the shared gradient is computed.
+            if config['defense_method'] == 'ats_privacy':
+                ground_truth = defense.ats_privacy(ground_truth, (dm, ds))
+                print('Defense applied: ats_privacy.')
+
             print("Ground truth's size:{}".format(ground_truth[0].shape))
             target_loss, _, _ = loss_fn(model(ground_truth), labels)
             input_gradient = torch.autograd.grad(target_loss, model.parameters())
@@ -252,20 +258,27 @@ if __name__ == "__main__":
                 print('No defense applied.')
                 d_param = config['defense_setting']
             else:
+                settings = config['defense_setting'] or {}
                 if config['defense_method'] == 'noise':
-                    d_param = 0.01 if config['defense_setting']['noise'] is None else config['defense_setting']['noise']
+                    d_param = 0.01 if settings.get('noise') is None else settings['noise']
                     input_gradient = defense.additive_noise(input_gradient, std=d_param)
                 if config['defense_method'] == 'clipping':
-                    d_param = 4 if  config['defense_setting']['clipping'] is None else config['defense_setting']['clipping']
+                    d_param = 4 if settings.get('clipping') is None else settings['clipping']
                     input_gradient = defense.gradient_clipping(input_gradient, bound=d_param)
                 if config['defense_method'] == 'compression':
-                    d_param = 20 if  config['defense_setting']['compression'] is None else config['defense_setting']['compression']
+                    d_param = 20 if settings.get('compression') is None else settings['compression']
                     input_gradient = defense.gradient_compression(input_gradient, percentage=d_param)
                 if config['defense_method'] == 'representation':
-                    d_param = 10 if config['defense_setting']['representation'] is None else config['defense_setting']['representation']
+                    d_param = 10 if settings.get('representation') is None else settings['representation']
                     input_gradient = defense.perturb_representation(input_gradient, model, ground_truth, pruning_rate=d_param)
-                # else:
-                #     raise NotImplementedError("Invalid defense method!")
+                if config['defense_method'] == 'orthogonal':
+                    # CENSOR: sample orthogonal gradients and keep the one that
+                    # least increases the loss of the clean gradient.
+                    d_param = 1e-4 if settings.get('orthogonal') is None else settings['orthogonal']
+                    input_gradient, _ = defense.orthogonal_gradient(
+                        input_gradient, model, ground_truth, labels,
+                        trials=config.get('our_num_tries', 20), epsilon=d_param,
+                        best_loss=target_loss)
                 print('Defense applied: {} w/ {}.'.format(config['defense_method'], d_param))
 
 

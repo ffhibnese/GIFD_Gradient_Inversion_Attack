@@ -99,8 +99,24 @@ the generative prior (faces) shares almost no semantics with the private data
 Metrics (PSNR, LPIPS-VGG, LPIPS-Alex, SSIM, MSE) are appended to
 `<output_dir>/<exp_name>/table_Metrics.csv` and the reconstructed images are saved next to it.
 
-Defenses are configured per experiment through `defense_method` / `defense_setting`
-(`noise`, `clipping`, `compression`, `representation`), implemented in `defense.py`.
+Defenses are configured per experiment through `defense_method` / `defense_setting`:
+
+| `defense_method` | Defense | Acts on |
+|---|---|---|
+| `noise` | additive Gaussian noise (DP) | gradient |
+| `clipping` | gradient clipping by norm | gradient |
+| `compression` | gradient sparsification | gradient |
+| `representation` | Soteria, perturbs the representation | gradient |
+| `orthogonal` | CENSOR, orthogonal subspace Bayesian sampling | gradient |
+| `ats_privacy` | ATSPrivacy, searched augmentation policy | input image |
+
+CENSOR samples `our_num_tries` gradients orthogonal to the true one and keeps
+the candidate whose one-step update least increases the training loss. It is
+adapted from the official [implementation](https://github.com/KaiyuanZh/censor)
+following Eq. (12) of the paper. ATSPrivacy is adapted from the official
+[implementation](https://github.com/gaow0007/ATSPrivacy); unlike the others it
+transforms the private image instead of the gradient, so it is applied before
+the shared gradient is computed.
 
 ## Evaluation helpers
 

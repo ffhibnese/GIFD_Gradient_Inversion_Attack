@@ -73,10 +73,14 @@
   #Defense parameter
   defense_method : None
   defense_setting : 
-      - noise : None
-      - clipping : None
-      - compression : None
-      - representation : None
+    noise : None
+    clipping : None
+    compression : None
+    representation : None
+    orthogonal : None
+
+  #Number of orthogonal gradient samples drawn by the CENSOR defense
+  our_num_tries : 20
 
 
   #For CMA-ES
