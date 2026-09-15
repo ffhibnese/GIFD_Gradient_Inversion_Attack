@@ -41,19 +41,28 @@
   ggl : false
 
   #For GIFD with stylegan2
-  steps : [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]      #8000 in total
-  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  steps : [1000, 1000, 1000, 1000, 1000]      # latent space + K=4 feature domains, 1000 iterations each
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1]
   start_layer: 0
-  end_layer: 8      #fixed
+  end_layer: 8      #fixed: must cover all synthesis blocks so that the full image is produced
 
   # For l-1 projection
+  # Radius of the k-th intermediate layer: r_k = r1 + (k - 1) * delta_r.
+  # Intermediate features: r1 = 2000, delta_r = 1000.
+  # Noises and latent vectors: r1 = 1000, delta_r = 1000.
+  # The lists are indexed by the optimization round: round 0 searches the latent
+  # space and has no intermediate feature to project, so entry 0 of
+  # max_radius_gen_out is set to -1 and skipped by the "> 0" guard. Noises and
+  # latent vectors are projected from round 0 on, so their entry 0 is a real
+  # radius. Every list must be at least as long as `steps`, otherwise the last
+  # round raises an IndexError.
   project : true
   do_project_gen_out: true
   do_project_noises: true
   do_project_latent: true
-  max_radius_gen_out: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
-  max_radius_noises: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
-  max_radius_latent: [1000, 2000, 3000, 4000, 5000, 6000, 8000, 8000]
+  max_radius_gen_out: [-1, 2000, 3000, 4000, 5000]
+  max_radius_noises: [1000, 2000, 3000, 4000, 5000]
+  max_radius_latent: [1000, 2000, 3000, 4000, 5000]
 
   # The pre-trained StyleGAN checkpoint
   ckpt: './inversefed/genmodels/stylegan2_io/stylegan2-ffhq-config-f.pt'

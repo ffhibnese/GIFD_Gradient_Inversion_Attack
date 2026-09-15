@@ -39,20 +39,26 @@
   ggl : false
 
   #For GIFD with biggan
-  steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  #Total 13000
-  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+  steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  # latent space + K=9 feature domains, 1000 iterations each
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
 
   start_layer: 0
-  end_layer: 13   #fixed
+  end_layer: 13   #fixed: must equal len(Generator.layers) so that the full generator is run
 
   # For l-1 projection
+  # Radius of the k-th intermediate layer: r_k = r1 + (k - 1) * delta_r,
+  # with r1 = 2000 and delta_r = 500.
+  # The list is indexed by the optimization round: round 0 searches the latent
+  # space and has no intermediate feature to project, so entry 0 is set to -1
+  # and skipped by the "> 0" guard. Every list must be at least as long as
+  # `steps`, otherwise the last round raises an IndexError.
   project : true
   do_project_gen_out: true
   do_project_noises: false
   do_project_latent: false
-  max_radius_gen_out: [1000, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000, 6500, 7000, 7500]
-  max_radius_noises: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
-  max_radius_latent: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
+  max_radius_gen_out: [-1, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+  max_radius_noises: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
+  max_radius_latent: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
   
 
   # The pre-trained StyleGAN checkpoint
