@@ -14,7 +14,9 @@ Because the intermediate feature space is much larger and may lead to unrealisti
 generation, the searching range of each layer is restricted to a small **l1 ball** centered
 at the vector induced by the previous layer. The output of the layer attaining the least
 gradient matching loss is selected as the final reconstruction. The per-layer radii are
-configured through `max_radius_*` in the yml files.
+configured through `max_radius_*` in the yml files. Two regularization terms are added to
+the matching loss, weighted by `total_variation` (alpha_TV = 1e-4) and `image_norm`
+(alpha_l2 = 1e-6) in the configs.
 
 ### Optimization schedule
 
