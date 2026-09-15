@@ -244,24 +244,31 @@ def orthogonal_gradient(input_gradient, model, ground_truth, labels, trials=20,
 # --------------------------------------------------------------------------- #
 
 class SubPolicy(object):
-    """A single image operation with a fixed probability and magnitude.
+    """One function of the AutoAugment augmentation library.
 
-    Adapted from the `autoaugment.py` of the ATSPrivacy repository.
+    Adapted from the `autoaugment.py` of the ATSPrivacy repository. The library
+    contains 50 of these functions; a transformation policy is a combination of
+    at most k = 3 of them (Section IV-D of the paper, search space
+    sum_{i=1..3} 50^i = 127,550).
+
+    `p1` is kept because the released policy list carries it, but neither the
+    paper nor the released implementation gates the function on it: a policy
+    that was selected for a sample is applied with its full magnitude.
     """
 
-    def __init__(self, p1, operation1, magnitude_idx1, fillcolor=(128, 128, 128)):
+    def __init__(self, p1, operation1, magnitude_idx1, fillcolor=(0, 0, 0)):
         ranges = {
             "shearX": np.linspace(0, 0.3, 10),
             "shearY": np.linspace(0, 0.3, 10),
             "translateX": np.linspace(0, 150 / 331, 10),
             "translateY": np.linspace(0, 150 / 331, 10),
             "rotate": np.linspace(0, 30, 10),
-            "color": np.linspace(0.0, 0.9, 10),
+            "color": np.linspace(0.0, 0.5, 10),
             "posterize": np.round(np.linspace(8, 4, 10), 0).astype(int),
             "solarize": np.linspace(256, 0, 10),
-            "contrast": np.linspace(0.0, 0.9, 10),
-            "sharpness": np.linspace(0.0, 0.9, 10),
-            "brightness": np.linspace(0.0, 0.9, 10),
+            "contrast": np.linspace(0.0, 0.5, 10),
+            "sharpness": np.linspace(0.0, 0.5, 10),
+            "brightness": np.linspace(0.0, 0.5, 10),
             "autocontrast": [0] * 10,
             "equalize": [0] * 10,
             "invert": [0] * 10,
@@ -301,8 +308,8 @@ class SubPolicy(object):
         self.magnitude1 = ranges[operation1][magnitude_idx1]
 
     def __call__(self, img):
-        if random.random() < self.p1:
-            img = self.operation1(img, self.magnitude1)
+        # The released implementation applies the function unconditionally.
+        img = self.operation1(img, self.magnitude1)
         return img
 
 
@@ -341,8 +348,9 @@ def ats_privacy(inputs, mean_std, num_policies=3, policy_pool=None):
     gradient harder to invert.
 
     `inputs` is a normalized BCHW tensor and `mean_std` the (mean, std) pair it
-    was normalized with, both shaped [C, 1, 1]. `num_policies` sub-policies are
-    sampled from the pool and applied in order to every image of the batch.
+    was normalized with, both shaped [C, 1, 1]. Following Section IV-E of the
+    paper, a policy is drawn per sample and consists of `num_policies` distinct
+    functions of the pool, with k = 3 as in the paper.
     """
     dm, ds = mean_std
     pool = ATS_PRIVACY_POLICIES if policy_pool is None else policy_pool
