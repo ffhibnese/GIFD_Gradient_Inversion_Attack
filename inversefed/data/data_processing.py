@@ -47,6 +47,11 @@ def construct_dataloaders(dataset, defs, data_path='~/data', shuffle=True, norma
         trainset = [None]
         validset = _build_imagenet_io(path, defs.augmentations, normalize, size=64)
         loss_fn = Classification()
+    elif dataset == 'IMAGENET_IO_256':
+        # Higher-resolution variant used to study how the attacks scale.
+        trainset = [None]
+        validset = _build_imagenet_io(path, defs.augmentations, normalize, size=256)
+        loss_fn = Classification()
     elif dataset.startswith('I'):
         trainset, validset = _build_imagenet(path, defs.augmentations, normalize, dataset=dataset)
         loss_fn = Classification()

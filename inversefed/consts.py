@@ -29,6 +29,11 @@ imagenet_std = [0.229, 0.224, 0.225]
 imagenet_io_mean = [0.485, 0.456, 0.406]
 imagenet_io_std = [0.229, 0.224, 0.225]
 
+# The dataset keys that carry a resolution suffix reuse the statistics of the
+# corresponding dataset.
+imagenet_io_256_mean = imagenet_io_mean
+imagenet_io_256_std = imagenet_io_std
+
 ood_imagenet_mean = [0.485, 0.456, 0.406]
 ood_imagenet_std = [0.229, 0.224, 0.225]
 

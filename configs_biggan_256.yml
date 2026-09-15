@@ -1,0 +1,83 @@
+  Introduction : 'Attacks on higher-resolution ImageNet with BigGAN.'
+
+  optim : 'GAN_based'
+  cost_fn : 'sim_cmpr0'
+  set_seed : 123
+  indices : 'def'
+  weights : 'equal'
+  init : 'randn'
+  model : 'DenseNet-121'   # FL model
+  restarts : 4
+
+  num_images : 8   # batch size of the private batch
+  num_exp : 10
+  target_id : 0
+  lr : 0.03
+  total_variation : 0.0001
+  bn_stat : 0
+  image_norm : 0.000001
+  group_lazy : 0
+
+  max_iterations : 1000
+
+  #For GIAS
+  gias_iterations : 8000
+  gias_lr : 0.00001
+
+  # For input data
+  generative_model : 'BigGAN'
+  gen_dataset : 'ImageNet256'
+  dataset : 'IMAGENET_IO_256'
+  data_path : './dataset/media/imagenet/val'    # specify your dataset path
+
+  #For output data
+  exp_name : 'ex1_biggan_imagenet256'
+  output_dir : 'results/'
+
+  #params for algorithm choice
+  gifd : true
+  gias : false
+  ggl : false
+
+  #For GIFD with biggan
+  steps: [1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000]  # latent space + K=9 feature domains
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1, 0.1]
+
+  start_layer: 0
+  end_layer: 13   #fixed: must equal len(Generator.layers) so that the full generator is run
+
+  # For l-1 projection
+  # Radius of the k-th intermediate layer: r_k = r1 + (k - 1) * delta_r,
+  # with r1 = 2000 and delta_r = 500. Entry 0 is the latent-space round and is
+  # skipped by the "> 0" guard. The schedule is the one tuned at 64 x 64; the
+  # radii bound the deviation of the generator features, which are produced by
+  # the same BigGAN regardless of the output resolution.
+  project : true
+  do_project_gen_out: true
+  do_project_noises: false
+  do_project_latent: false
+  max_radius_gen_out: [-1, 2000, 2500, 3000, 3500, 4000, 4500, 5000, 5500, 6000]
+  max_radius_noises: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
+  max_radius_latent: [-1, -1, -1, -1, -1, -1, -1, -1, -1, -1]   # designed for stylegan2, here unused.
+
+  # The pre-trained StyleGAN checkpoint
+  ckpt: None
+
+  #LR pace for training
+  lr_same_pace: false
+
+  #Defense parameter
+  defense_method : None
+  defense_setting :
+      - noise : None
+      - clipping : None
+      - compression : None
+      - representation : None
+
+  #For CMA-ES in GGL
+  KLD : 0.1
+  cma_budget : 800
+  num_sample : 50
+
+  #cmd instruction
+  # python rec_mult.py --config configs_biggan_256.yml

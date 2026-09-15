@@ -83,10 +83,18 @@ variants `OOD_FFHQ` / `OOD_IMAGENET`.
 We prepare three configuration files for performing gradient inversion attacks, including the BigGAN-based, the StyleGAN2-based, and the GAN-free methods, where we give detailed descriptions of every parameter. Feel free to contact me at fang-h23@mails.tsinghua.edu.cn if you have any concerns.
 
 ```bash
-python rec_mult.py --config configs_biggan.yml      # ImageNet 64x64, BigGAN prior
-python rec_mult.py --config configs_stylegan2.yml   # FFHQ 64x64, StyleGAN2 prior
-python rec_mult.py --config configs_gan_free.yml    # Geiping / Yin baselines, no GAN
+python rec_mult.py --config configs_biggan.yml        # ImageNet 64x64, BigGAN prior
+python rec_mult.py --config configs_stylegan2.yml     # FFHQ 64x64, StyleGAN2 prior
+python rec_mult.py --config configs_gan_free.yml      # Geiping / Yin baselines, no GAN
+python rec_mult.py --config configs_biggan_256.yml    # ImageNet 256x256, DenseNet-121
+python rec_mult.py --config configs_ood_biggan.yml    # private data from a shifted domain
+python rec_mult.py --config configs_ood_stylegan2.yml # face prior vs. ImageNet data
 ```
+
+The last three cover the settings that go beyond the default one: higher
+resolution, an out-of-distribution private domain, and the extreme case where
+the generative prior (faces) shares almost no semantics with the private data
+(ImageNet classes).
 
 Metrics (PSNR, LPIPS-VGG, LPIPS-Alex, SSIM, MSE) are appended to
 `<output_dir>/<exp_name>/table_Metrics.csv` and the reconstructed images are saved next to it.

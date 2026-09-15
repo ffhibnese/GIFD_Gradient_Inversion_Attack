@@ -1,0 +1,86 @@
+  Introduction : 'Extreme OOD: a face generator (StyleGAN2) attacking ImageNet data.'
+
+  optim : 'GAN_based'
+  cost_fn : 'sim_cmpr0'
+  set_seed : 0
+  indices : 'def'
+  weights : 'equal'
+  init : 'randn'
+  model : 'ResNet18'
+  restarts : 4
+
+  num_images : 1
+  num_exp : 10
+  target_id : 0
+  lr : 0.03
+  total_variation : 0.0001
+  bn_stat : 0
+  image_norm : 0.000001
+  group_lazy : 0
+
+  max_iterations : 1000
+
+  gias_iterations : 8000
+  gias_lr : 0.001
+
+  # For input data
+  # The private data comes from ImageNet while the prior is a StyleGAN2 trained
+  # exclusively on human faces, so the generative prior and the private data
+  # have almost no semantic overlap. This is the most extreme OOD setting: it
+  # shows how far the attacks degrade when the prior carries no usable
+  # information about the target classes.
+  generative_model : 'stylegan2_io'
+  gen_dataset : 'FFHQ64'
+  dataset : 'IMAGENET_IO'
+  data_path : './dataset/media/imagenet/val'    # specify your dataset path
+
+  #For output data
+  exp_name : 'ex1_ood_stylegan2_on_imagenet'
+  output_dir : 'results/'
+
+  #params for algorithm choice
+  gifd : true
+  gias : false
+  ggl : false
+
+  #For GIFD with stylegan2
+  steps : [1000, 1000, 1000, 1000, 1000]      # latent space + K=4 feature domains
+  lr_io: [0.1, 0.1, 0.1, 0.1, 0.1]
+  start_layer: 0
+  end_layer: 8      #fixed: must cover all synthesis blocks so that the full image is produced
+
+  # For l-1 projection
+  # Radius of the k-th intermediate layer: r_k = r1 + (k - 1) * delta_r.
+  # Intermediate features: r1 = 2000, delta_r = 1000.
+  # Noises and latent vectors: r1 = 1000, delta_r = 1000.
+  # Entry 0 of max_radius_gen_out is the latent-space round and is skipped by
+  # the "> 0" guard. Every list must be at least as long as `steps`.
+  project : true
+  do_project_gen_out: true
+  do_project_noises: true
+  do_project_latent: true
+  max_radius_gen_out: [-1, 2000, 3000, 4000, 5000]
+  max_radius_noises: [1000, 2000, 3000, 4000, 5000]
+  max_radius_latent: [1000, 2000, 3000, 4000, 5000]
+
+  # The pre-trained StyleGAN checkpoint
+  ckpt: './inversefed/genmodels/stylegan2_io/stylegan2-ffhq-config-f.pt'
+
+  #LR pace for training
+  lr_same_pace: false
+
+  #Defense parameter
+  defense_method : None
+  defense_setting :
+      - noise : None
+      - clipping : None
+      - compression : None
+      - representation : None
+
+  #For CMA-ES
+  KLD : 0
+  cma_budget : 800
+  num_sample : 50
+
+  #cmd instruction
+  # python rec_mult.py --config configs_ood_stylegan2.yml

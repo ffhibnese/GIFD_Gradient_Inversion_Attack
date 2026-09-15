@@ -34,6 +34,7 @@ import lpips
 nclass_dict = {'I32': 1000, 'I64': 1000, 'I128': 1000, 
                'CIFAR10': 10, 'CIFAR100': 100, 'CA': 8, 'ImageNet':1000, 'IMAGENET_IO' : 1000,
                'FFHQ': 10, 'FFHQ64': 10, 'FFHQ128': 10, 'OOD_FFHQ':10, 'OOD_IMAGENET':1000,
+               'IMAGENET_IO_256': 1000,
                'MNIST': 10, 'KMNIST': 10, 'SVHN': 10
                }
 # Parse input arguments
