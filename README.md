@@ -5,119 +5,28 @@ A PyTorch official implementation for [GIFD: A Generative Gradient Inversion Met
 
 ![pipeline](./figures/pipeline.png)
 
-## Method
+## Contents
 
-Instead of searching only the initial latent code of a pre-trained GAN, GIFD **disassembles
-the generator** into `G0 o G1 o ... o GN` and progressively changes the layer being
-optimized, from the initial latent space to intermediate layers closer to the output image.
-Because the intermediate feature space is much larger and may lead to unrealistic image
-generation, the searching range of each layer is restricted to a small **l1 ball** centered
-at the vector induced by the previous layer. The output of the layer attaining the least
-gradient matching loss is selected as the final reconstruction. The per-layer radii are
-configured through `max_radius_*` in the yml files. Two regularization terms are added to
-the matching loss, weighted by `total_variation` (alpha_TV = 1e-4) and `image_norm`
-(alpha_l2 = 1e-6) in the configs.
-
-### Optimization schedule
-
-Each search stage runs `steps[k]` Adam iterations starting from `lr_io[k]` (0.1 by
-default). The learning rate is not constant: it follows `get_lr` in
-`inversefed/reconstruction_algorithms.py`, which linearly warms the rate up from 0 over
-the first 1/20 of the iterations (`rampup = 0.05`) and then decays it to 0 with a cosine
-profile over the remaining 3/4 of them (`rampdown = 0.75`).
-
-By default every stage restarts that schedule, so each layer gets its own warm-up and
-decay. Setting `lr_same_pace: true` instead computes `t` over the total number of
-iterations of all stages, so the whole hierarchy shares one warm-up and one decay; this
-currently only affects the StyleGAN2 path.
-
-### Ablation variants
-
-`gifd_variant` selects one of the variants of Table VIII, which isolate the
-contribution of each technique:
-
-| `gifd_variant` | Searches | l1 ball | Reported output |
-|---|---|---|---|
-| `z` | latent space only | no | the latent-space reconstruction |
-| `f` | latent + intermediate features | no | the **last** searched layer |
-| `e` | latent + intermediate features | no | the layer with the **least** matching error |
-| `full` (default) | latent + intermediate features | yes | the layer with the least matching error |
-
-`GIFD-e` is `GIFD-f` with the output-selection rule, and `GIFD` is `GIFD-e`
-plus the l1 ball limitation. The variant is reported under its own name in
-`table_Metrics.csv`, so it can be read off without having to know which of the
-`layer*` columns to look at.
-
-### Federated learning settings
-
-The default configs attack a randomly initialized global model with IID private
-data. `tools/fl_simulation.py` covers the two FL factors the experiments also
-vary:
-
-- **Data heterogeneity.** The dataset classes are randomly distributed over
-  `Nclient` clients; a sample with label `l` goes to its designated client with
-  probability `q` and to any other client with probability
-  `(1 - q) / (Nclient - 1)`. With `Nclient = 10`, `q = 0.10` is the IID case and
-  larger values give increasingly non-IID clients.
-- **Number of FL rounds.** `train` runs FedAvg and stores the global model after
-  every round, so an attack can be pointed at a converged model instead of a
-  randomly initialized one.
-
-```bash
-python tools/fl_simulation.py split --dataset IMAGENET_IO \
-    --data-path ./dataset/media/imagenet/val --num-clients 10 --q 0.10 \
-    --out fl_split_q0.10.json
-
-python tools/fl_simulation.py train --dataset IMAGENET_IO \
-    --data-path ./dataset/media/imagenet/val --split fl_split_q0.10.json \
-    --rounds 5 --local-steps 1 --local-lr 0.1 --out-dir fl_rounds
-
-python rec_mult.py --config configs_biggan.yml \
-    --model_ckpt fl_rounds/global_round_5.pt \
-    --split_file fl_split_q0.10.json --client 0
-```
-
-`--model_ckpt` loads the global model of a given round, and `--split_file` with
-`--client` restricts the reconstructed images to the private data of one client.
-Both commands read the same dataset object that `rec_mult.py` samples its targets
-from, so the indices written by `split` stay valid.
-
-### Label mapping
-
-Under label inconsistency the label inferred from the shared gradients belongs to
-the *private* label space, while a conditional generator expects the label space
-it was trained on: attacking a face classifier with an ImageNet-pretrained
-BigGAN, the inferred label `0` means "age 0-9" for the private data but "tench"
-for the generator. Feeding that label to the generator provides misleading
-conditioning and degrades the reconstruction.
-
-Label mapping inverts twice. A first coarse pass runs only `coarse_iterations`
-iterations per layer using the inferred label; the resulting image is then
-classified by a remapper `f_m(.)` trained on the GAN's own dataset, whose
-prediction is by construction a label of the generator's label space; a second
-fine-grained pass uses that label as conditioning. The remapper only needs to be
-trained once per generative prior:
-
-```bash
-python tools/train_label_mapper.py \
-    --data ./dataset/media/imagenet/train \
-    --val-data ./dataset/media/imagenet/val \
-    --dataset IMAGENET_IO --model ResNet18 --resolution 64 \
-    --epochs 20 --out label_mapper.pt
-```
-
-Then point `label_mapper_ckpt` of a config at the checkpoint and set
-`label_mapping: true` (`configs_ood_biggan.yml` does this). The technique only
-applies to conditional generators, so it stays disabled for the StyleGAN2 prior.
+- [Results](#results)
+- [Setup](#setup)
+- [Dataset and model files](#dataset-and-model-files)
+- [Supported FL models and datasets](#supported-fl-models-and-datasets)
+- [Quick start](#quick-start)
+- [Method](#method)
+  - [Optimization schedule](#optimization-schedule)
+  - [Ablation variants](#ablation-variants)
+  - [Label mapping](#label-mapping)
+  - [Federated learning settings](#federated-learning-settings)
+- [Tools](#tools)
+- [Citation](#citation)
+- [Acknowledgement](#acknowledgement)
 
 ## Results
 ![results](./figures/results.jpg)
 
 ## Setup
 
-Install the dependencies with pip (a conda environment works just as well). The
-listed versions are the ones the code is verified with; only lower bounds are
-enforced, so newer stacks work too.
+Install the environment with pip (a conda environment works just as well):
 
 ```bash
 pip install -r requirements.txt
@@ -143,7 +52,7 @@ can be skipped if you do not use them.
 >
 > The BigGAN path is unaffected, as it uses no custom operators.
 
-## Dataset and model file
+## Dataset and model files
 
 Download the [ImageNet](https://www.image-net.org/) and [FFHQ](https://github.com/NVlabs/ffhq-dataset) and provide their paths in the yml file.
 
@@ -212,6 +121,8 @@ the generative prior (faces) shares almost no semantics with the private data
 Metrics (PSNR, LPIPS-VGG, LPIPS-Alex, SSIM, MSE) are appended to
 `<output_dir>/<exp_name>/table_Metrics.csv` and the reconstructed images are saved next to it.
 
+### Defenses
+
 Defenses are configured per experiment through `defense_method` / `defense_setting`:
 
 | `defense_method` | Defense | Acts on |
@@ -231,10 +142,122 @@ following Eq. (12) of the paper. ATSPrivacy is adapted from the official
 transforms the private image instead of the gradient, so it is applied before
 the shared gradient is computed.
 
-## Evaluation helpers
+## Method
 
-Two small scripts under `tools/` reproduce the analyses that go beyond the
-per-image metrics written by `rec_mult.py`.
+Instead of searching only the initial latent code of a pre-trained GAN, GIFD **disassembles
+the generator** into `G0 o G1 o ... o GN` and progressively changes the layer being
+optimized, from the initial latent space to intermediate layers closer to the output image.
+Because the intermediate feature space is much larger and may lead to unrealistic image
+generation, the searching range of each layer is restricted to a small **l1 ball** centered
+at the vector induced by the previous layer. The output of the layer attaining the least
+gradient matching loss is selected as the final reconstruction. The per-layer radii are
+configured through `max_radius_*` in the yml files. Two regularization terms are added to
+the matching loss, weighted by `total_variation` (alpha_TV = 1e-4) and `image_norm`
+(alpha_l2 = 1e-6) in the configs.
+
+### Optimization schedule
+
+Each search stage runs `steps[k]` Adam iterations starting from `lr_io[k]` (0.1 by
+default). The learning rate is not constant: it follows `get_lr` in
+`inversefed/reconstruction_algorithms.py`, which linearly warms the rate up from 0 over
+the first 1/20 of the iterations (`rampup = 0.05`) and then decays it to 0 with a cosine
+profile over the remaining 3/4 of them (`rampdown = 0.75`).
+
+By default every stage restarts that schedule, so each layer gets its own warm-up and
+decay. Setting `lr_same_pace: true` instead computes `t` over the total number of
+iterations of all stages, so the whole hierarchy shares one warm-up and one decay; this
+currently only affects the StyleGAN2 path.
+
+### Ablation variants
+
+`gifd_variant` selects one of the variants of Table VIII, which isolate the
+contribution of each technique:
+
+| `gifd_variant` | Searches | l1 ball | Reported output |
+|---|---|---|---|
+| `z` | latent space only | no | the latent-space reconstruction |
+| `f` | latent + intermediate features | no | the **last** searched layer |
+| `e` | latent + intermediate features | no | the layer with the **least** matching error |
+| `full` (default) | latent + intermediate features | yes | the layer with the least matching error |
+
+`GIFD-e` is `GIFD-f` with the output-selection rule, and `GIFD` is `GIFD-e`
+plus the l1 ball limitation. The variant is reported under its own name in
+`table_Metrics.csv`, so it can be read off without having to know which of the
+`layer*` columns to look at.
+
+### Label mapping
+
+Under label inconsistency the label inferred from the shared gradients belongs to
+the *private* label space, while a conditional generator expects the label space
+it was trained on: attacking a face classifier with an ImageNet-pretrained
+BigGAN, the inferred label `0` means "age 0-9" for the private data but "tench"
+for the generator. Feeding that label to the generator provides misleading
+conditioning and degrades the reconstruction.
+
+Label mapping inverts twice. A first coarse pass runs only `coarse_iterations`
+iterations per layer using the inferred label; the resulting image is then
+classified by a remapper `f_m(.)` trained on the GAN's own dataset, whose
+prediction is by construction a label of the generator's label space; a second
+fine-grained pass uses that label as conditioning. The remapper only needs to be
+trained once per generative prior, see [Tools](#tools):
+
+```bash
+python tools/train_label_mapper.py \
+    --data ./dataset/media/imagenet/train \
+    --val-data ./dataset/media/imagenet/val \
+    --dataset IMAGENET_IO --model ResNet18 --resolution 64 \
+    --epochs 20 --out label_mapper.pt
+```
+
+Then point `label_mapper_ckpt` of a config at the checkpoint and set
+`label_mapping: true` (`configs_ood_biggan.yml` does this). The technique only
+applies to conditional generators, so it stays disabled for the StyleGAN2 prior.
+
+### Federated learning settings
+
+The default configs attack a randomly initialized global model with IID private
+data. `tools/fl_simulation.py` covers the two FL factors the experiments also
+vary, see [Tools](#tools):
+
+- **Data heterogeneity.** The dataset classes are randomly distributed over
+  `Nclient` clients; a sample with label `l` goes to its designated client with
+  probability `q` and to any other client with probability
+  `(1 - q) / (Nclient - 1)`. With `Nclient = 10`, `q = 0.10` is the IID case and
+  larger values give increasingly non-IID clients.
+- **Number of FL rounds.** `train` runs FedAvg and stores the global model after
+  every round, so an attack can be pointed at a converged model instead of a
+  randomly initialized one.
+
+```bash
+python tools/fl_simulation.py split --dataset IMAGENET_IO \
+    --data-path ./dataset/media/imagenet/val --num-clients 10 --q 0.10 \
+    --out fl_split_q0.10.json
+
+python tools/fl_simulation.py train --dataset IMAGENET_IO \
+    --data-path ./dataset/media/imagenet/val --split fl_split_q0.10.json \
+    --rounds 5 --local-steps 1 --local-lr 0.1 --out-dir fl_rounds
+
+python rec_mult.py --config configs_biggan.yml \
+    --model_ckpt fl_rounds/global_round_5.pt \
+    --split_file fl_split_q0.10.json --client 0
+```
+
+`--model_ckpt` loads the global model of a given round, and `--split_file` with
+`--client` restricts the reconstructed images to the private data of one client.
+Both commands read the same dataset object that `rec_mult.py` samples its targets
+from, so the indices written by `split` stay valid.
+
+## Tools
+
+Four small scripts under `tools/` cover what goes beyond the per-image metrics
+written by `rec_mult.py`.
+
+| Script | Purpose | Documented in |
+|---|---|---|
+| `stat_test.py` | significance of the improvements | below |
+| `profile_cost.py` | cost of a single attack iteration | below |
+| `fl_simulation.py` | heterogeneous clients and FL rounds | [Federated learning settings](#federated-learning-settings) |
+| `train_label_mapper.py` | train the remapper of label mapping | [Label mapping](#label-mapping) |
 
 **Significance of the improvements** (`tools/stat_test.py`). Every attack
 appends one row per reconstructed image to its own `table_Metrics.csv`. Point
