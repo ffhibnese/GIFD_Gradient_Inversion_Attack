@@ -299,6 +299,13 @@ convolution or a linear layer costs roughly twice as much again.
   pages={4967--4976},
   year={2023}
 }
+
+@article{fang2026enhancing,
+  title={Enhancing gradient inversion attacks in federated learning via hierarchical feature optimization},
+  author={Fang, Hao and Yu, Wenbo and Chen, Bin and Wang, Xuan and Xia, Shu-Tao and Liao, Qing and Xu, Ke},
+  journal={arXiv preprint arXiv:2604.00955},
+  year={2026}
+}
 ```
 
 ## Acknowledgement
